@@ -1,36 +1,138 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Tractor Management System
+
+A modern web application for managing tractor services, jobs, and client interactions. Built with Next.js, TypeScript, and Tailwind CSS.
+
+## Features
+
+- **Public Service Page**: Display available tractor services with rates and contact information
+- **Job Management**: Create, view, and manage tractor service jobs
+- **Service Management**: Add and manage different tractor services with hourly or fixed pricing
+- **Authentication**: Secure login/logout functionality
+- **Responsive Design**: Mobile-first design optimized for all devices
+- **Real-time Updates**: Live service rate updates and job status tracking
+
+## Tech Stack
+
+- **Frontend**: Next.js 14, React, TypeScript
+- **Styling**: Tailwind CSS
+- **Icons**: Lucide React
+- **Database**: MongoDB (via custom DB connection)
+- **Authentication**: Custom auth system
+- **Notifications**: React Hot Toast
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
 
+- Node.js 18+
+- npm or yarn
+- MongoDB database
+
+### Installation
+
+1. Clone the repository:
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone <repository-url>
+cd tractor-management
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. Install dependencies:
+```bash
+npm install
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+3. Set up environment variables:
+Create a `.env.local` file in the root directory with:
+```env
+MONGODB_URI=your_mongodb_connection_string
+NEXTAUTH_SECRET=your_nextauth_secret
+NEXTAUTH_URL=http://localhost:3000
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+4. Run the development server:
+```bash
+npm run dev
+```
 
-## Learn More
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-To learn more about Next.js, take a look at the following resources:
+## Project Structure
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```
+src/
+├── app/
+│   ├── api/
+│   │   ├── auth/
+│   │   ├── jobs/
+│   │   └── services/
+│   ├── jobs/
+│   ├── login/
+│   ├── public/
+│   ├── reports/
+│   ├── settings/
+│   ├── globals.css
+│   ├── layout.tsx
+│   └── page.tsx
+├── components/
+│   ├── BottomNav.tsx
+│   ├── JobCard.tsx
+│   ├── Navbar.tsx
+│   ├── RevenueChart.tsx
+│   └── TopBar.tsx
+├── lib/
+│   ├── db.ts
+│   └── translations.ts
+└── models/
+    ├── Job.ts
+    └── Service.ts
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## API Routes
 
-## Deploy on Vercel
+- `GET/POST /api/services` - Manage services
+- `GET/POST /api/jobs` - Manage jobs
+- `POST /api/auth/login` - User login
+- `POST /api/auth/logout` - User logout
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Usage
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### Public Page
+Visit `/public` to view available services and contact the service provider.
+
+### Admin Features
+- Login at `/login`
+- Manage services and jobs through the dashboard
+- View reports and analytics
+
+## Building for Production
+
+```bash
+npm run build
+npm start
+```
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Run tests and linting
+5. Submit a pull request
+
+## Troubleshooting
+
+### Common Issues
+
+- **Database Connection**: Ensure MongoDB is running and connection string is correct
+- **Build Errors**: Clear node_modules and reinstall: `rm -rf node_modules && npm install`
+- **TypeScript Errors**: Run `npm run type-check` to identify issues
+
+### Development Tips
+
+- Use `npm run lint` to check code quality
+- Enable React DevTools for debugging
+- Test on multiple devices for responsive design
+
+## License
+
+This project is licensed under the MIT License.
