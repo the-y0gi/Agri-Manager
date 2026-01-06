@@ -1,16 +1,28 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import Job from "@/models/Job";
 
-// Fetch a single job by ID
+type Params = {
+  params: Promise<{ id: string }>;
+};
+
+// GET job
 export async function GET(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  request: NextRequest,
+  { params }: Params
 ) {
   try {
     await connectDB();
 
     const { id } = await params;
+
+    if (!id) {
+      return NextResponse.json(
+        { error: "Job ID is required" },
+        { status: 400 }
+      );
+    }
+
     const job = await Job.findById(id);
 
     if (!job) {
@@ -22,6 +34,7 @@ export async function GET(
 
     return NextResponse.json(job);
   } catch (error) {
+    console.error("GET /jobs/:id error:", error);
     return NextResponse.json(
       { error: "Failed to fetch job" },
       { status: 500 }
@@ -29,10 +42,10 @@ export async function GET(
   }
 }
 
-// Update job details, work logs, payments, or status
+// UPDATE job
 export async function PUT(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  request: NextRequest,
+  { params }: Params
 ) {
   try {
     await connectDB();
@@ -48,7 +61,6 @@ export async function PUT(
       );
     }
 
-    // Add work log and recalculate totals
     if (body.newLog) {
       job.workLogs = job.workLogs || [];
       job.workLogs.push(body.newLog);
@@ -63,7 +75,6 @@ export async function PUT(
       }
     }
 
-    // Add payment entry and update paid amount
     if (body.newPayment) {
       job.paymentLogs = job.paymentLogs || [];
       job.paymentLogs.push({
@@ -76,7 +87,6 @@ export async function PUT(
         (job.paidAmount || 0) + Number(body.newPayment.amount);
     }
 
-    // Update job status
     if (body.status) {
       job.status = body.status;
     }
@@ -92,10 +102,10 @@ export async function PUT(
   }
 }
 
-// Delete a job by ID
+// DELETE job
 export async function DELETE(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  request: NextRequest,
+  { params }: Params
 ) {
   try {
     await connectDB();
