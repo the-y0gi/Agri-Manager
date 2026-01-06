@@ -1,4 +1,3 @@
-// src/lib/db.ts
 import mongoose from "mongoose";
 
 const MONGODB_URI = process.env.MONGODB_URI!;
@@ -9,7 +8,6 @@ if (!MONGODB_URI) {
   );
 }
 
-// Global variable cache karne ke liye taaki connection bar bar na bane
 interface MongooseCache {
   conn: typeof mongoose | null;
   promise: Promise<typeof mongoose> | null;
