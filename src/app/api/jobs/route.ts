@@ -2,14 +2,13 @@ import { NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import Job from "@/models/Job";
 
-// Fetch all jobs for the dashboard (latest first)
+// Fetch all jobs for the dashboard 
 export async function GET() {
   try {
     await connectDB();
 
-    // Only select the fields needed by frontend
     const jobs = await Job.find({})
-      .select("farmerName serviceName status totalAmount paidAmount createdAt")
+      .select("farmerName serviceName status totalAmount paidAmount createdAt workLogs.serviceName")
       .sort({ createdAt: -1 });
     
     return NextResponse.json(jobs);

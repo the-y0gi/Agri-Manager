@@ -17,6 +17,7 @@ interface Job {
   totalAmount: number;
   paidAmount: number;
   createdAt: string;
+  workLogs: ({ serviceName?: string } | null)[];
 }
 
 export default function Home() {
@@ -34,15 +35,17 @@ export default function Home() {
           const sortedJobs = data.sort((a: Job, b: Job) => {
             const pendingA = a.totalAmount - a.paidAmount;
             const pendingB = b.totalAmount - b.paidAmount;
-            const isClearA = pendingA === 0 && a.totalAmount > 0;
-            const isClearB = pendingB === 0 && b.totalAmount > 0;
+            const isClearA = pendingA <= 0 && a.totalAmount > 0;
+            const isClearB = pendingB <= 0 && b.totalAmount > 0;
 
             // Priority: jobs with pending payments first
             if (isClearA && !isClearB) return 1;
             if (!isClearA && isClearB) return -1;
 
             // Then sort by most recent
-            return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+            return (
+              new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+            );
           });
 
           setJobs(sortedJobs);
@@ -56,6 +59,37 @@ export default function Home() {
 
     fetchJobs();
   }, []);
+
+  const formatDate = (dateString: string) => {
+    if (!dateString) return "";
+    try {
+      const date = new Date(dateString);
+      const day = date.getDate().toString().padStart(2, "0");
+      const month = date.toLocaleString("en-US", { month: "short" });
+      const year = date.getFullYear().toString().slice(-2);
+      return `${day} ${month} ${year}`;
+    } catch (e) {
+      return "";
+    }
+  };
+
+  const getJobServices = (job: Job) => {
+    if (!job) return "";
+
+    const allServices: string[] = [];
+
+    if (job.serviceName) allServices.push(job.serviceName);
+
+    if (Array.isArray(job.workLogs)) {
+      job.workLogs.forEach((log) => {
+        if (log && log.serviceName) {
+          allServices.push(log.serviceName);
+        }
+      });
+    }
+
+    return [...new Set(allServices)].join(", ") || "Unknown";
+  };
 
   const filteredJobs = jobs.filter((job) =>
     job.farmerName.toLowerCase().includes(searchQuery.toLowerCase())
@@ -98,11 +132,11 @@ export default function Home() {
                 <Link key={job._id} href={`/jobs/${job._id}`} className="block">
                   <JobCard
                     farmerName={job.farmerName}
-                    serviceName={job.serviceName}
+                    serviceName={getJobServices(job)}
                     status={job.status}
                     totalAmount={job.totalAmount}
                     paidAmount={job.paidAmount}
-                    date={job.createdAt}
+                    date={formatDate(job.createdAt)}
                   />
                 </Link>
               ))

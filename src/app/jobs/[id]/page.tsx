@@ -3,24 +3,47 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { 
-  ArrowLeft, Phone, Share2, CheckCircle, 
-  Clock, Calendar, IndianRupee, Plus, 
-  Banknote, Trash2, X
+import {
+  ArrowLeft,
+  Phone,
+  Share2,
+  CheckCircle,
+  Clock,
+  Calendar,
+  IndianRupee,
+  Plus,
+  Banknote,
+  Trash2,
+  X,
+  Pencil,
+  ChevronDown,
 } from "lucide-react";
 import toast from "react-hot-toast";
 
+// --- Interfaces ---
+
+const OWNER_NAME = "Sanjay Chouriya";
+interface Service {
+  _id: string;
+  name: string;
+  price: number;
+}
+
 interface WorkLog {
+  _id: string;
   date: string;
   startTime?: string;
   endTime?: string;
   hoursWorked?: number;
-  fixedCost?: string;
+  fixedCost?: string | number;
+  serviceName?: string;
+  rate?: number;
 }
 
 interface PaymentLog {
+  _id: string;
   date: string;
-  amount: string;
+  amount: string | number;
   note: string;
 }
 
@@ -32,533 +55,970 @@ interface Job {
   rateType: "hourly" | "fixed";
   totalAmount: number;
   paidAmount: number;
-  status: string;
+  status: "ongoing" | "completed";
   mobileNumber: string;
   workLogs: WorkLog[];
   paymentLogs: PaymentLog[];
 }
 
-type ActiveTab = "work" | "payment";
+interface EntryFormState {
+  date: string;
+  startTime: string;
+  endTime: string;
+  hoursWorked: number;
+  fixedCost: string;
+  serviceName: string;
+  rate: string;
+}
+
+interface PaymentFormState {
+  amount: string;
+  date: string;
+  note: string;
+}
 
 export default function JobDetailsPage() {
-  const { id } = useParams();
+  const params = useParams();
+  const id = params?.id as string;
   const router = useRouter();
 
+  // --- State Management ---
   const [job, setJob] = useState<Job | null>(null);
+  const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshKey, setRefreshKey] = useState(0);
 
-  const [activeTab, setActiveTab] = useState<ActiveTab>("work");
+  const [activeTab, setActiveTab] = useState<"work" | "payment">("work");
   const [showEntryForm, setShowEntryForm] = useState(false);
   const [showPaymentForm, setShowPaymentForm] = useState(false);
 
-  const [entryData, setEntryData] = useState({
+  const [editingWorkLog, setEditingWorkLog] = useState<WorkLog | null>(null);
+  const [editingPaymentLog, setEditingPaymentLog] = useState<PaymentLog | null>(
+    null
+  );
+
+  const [entryData, setEntryData] = useState<EntryFormState>({
     date: new Date().toISOString().split("T")[0],
     startTime: "",
     endTime: "",
     hoursWorked: 0,
     fixedCost: "",
+    serviceName: "",
+    rate: "",
   });
 
-  const [paymentData, setPaymentData] = useState({
+  const [paymentData, setPaymentData] = useState<PaymentFormState>({
     amount: "",
     date: new Date().toISOString().split("T")[0],
-    note: "", 
+    note: "",
   });
 
+  // --- Data Fetching ---
   useEffect(() => {
-    async function fetchJob() {
+    const fetchData = async () => {
       try {
-        if (!id) return;
-        const res = await fetch(`/api/jobs/${id}`);
-        const data = await res.json();
-        
-        if (!res.ok || data.error) {
+        const jobRes = await fetch(`/api/jobs/${id}`);
+
+        if (!jobRes.ok) {
           toast.error("Job not found");
           router.push("/");
           return;
         }
-        setJob(data);
+
+        const jobData: Job = await jobRes.json();
+        setJob(jobData);
+
+        if (!editingWorkLog) {
+          setEntryData((prev) => ({
+            ...prev,
+            serviceName: jobData.serviceName,
+            rate: jobData.serviceRate.toString(),
+          }));
+        }
+
+        const servRes = await fetch("/api/services");
+        const servData = await servRes.json();
+        if (Array.isArray(servData)) setServices(servData);
       } catch (error) {
-        toast.error("Error loading job");
+        toast.error("Failed to load job data");
       } finally {
         setLoading(false);
       }
-    }
-    fetchJob();
-  }, [id, refreshKey, router]);
+    };
 
+    if (id) fetchData();
+  }, [id, refreshKey, router, editingWorkLog]); 
+
+  // --- Helpers & Formatters ---
+  const formatDate = (dateStr: string) => {
+    if (!dateStr) return "";
+    const d = new Date(dateStr);
+    return d.toLocaleDateString("en-GB", {
+      day: "2-digit",
+      month: "short",
+      year: "2-digit",
+    });
+  };
+
+  const formatDuration = (decimalHours: number) => {
+    if (!decimalHours) return "0 mins";
+    const totalMins = Math.round(decimalHours * 60);
+    const h = Math.floor(totalMins / 60);
+    const m = totalMins % 60;
+    if (h === 0) return `${m} mins`;
+    if (m === 0) return `${h} hrs`;
+    return `${h} hr ${m} mins`;
+  };
+
+  const formatTime = (time: string) => {
+    if (!time) return "";
+    const [hours, minutes] = time.split(":");
+    const date = new Date();
+    date.setHours(Number(hours), Number(minutes));
+    return date.toLocaleTimeString("en-US", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    });
+  };
+
+  const getUniqueServices = () => {
+    if (!job) return "";
+    const usedServices = job.workLogs.map(
+      (log) => log.serviceName || job.serviceName
+    );
+    usedServices.push(job.serviceName);
+    return [...new Set(usedServices)].join(", ");
+  };
+
+  // --- Effects ---
   useEffect(() => {
     if (entryData.startTime && entryData.endTime) {
       const start = new Date(`2000-01-01T${entryData.startTime}`);
       const end = new Date(`2000-01-01T${entryData.endTime}`);
       let diff = (end.getTime() - start.getTime()) / 1000 / 60 / 60;
       if (diff < 0) diff = 0;
-      setEntryData((prev) => ({ ...prev, hoursWorked: Number(diff.toFixed(2)) }));
+      setEntryData((prev) => ({
+        ...prev,
+        hoursWorked: Number(diff.toFixed(2)),
+      }));
     }
   }, [entryData.startTime, entryData.endTime]);
 
-  const handleAddEntry = async () => {
-    if (!entryData.date) {
-      toast.error("Date is required");
-      return;
-    }
-    if (job?.rateType === "hourly" && !entryData.startTime) {
-      toast.error("Start time required");
-      return;
-    }
-    if (job?.rateType === "fixed" && !entryData.fixedCost) {
-      toast.error("Fixed cost required");
-      return;
-    }
+  // --- Handlers ---
+  const handleServiceChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const selectedName = e.target.value;
+    const selectedService = services.find((s) => s.name === selectedName);
+    setEntryData((prev) => ({
+      ...prev,
+      serviceName: selectedName,
+      rate: selectedService ? selectedService.price.toString() : prev.rate,
+    }));
+  };
 
-    const toastId = toast.loading("Saving work...");
-    try {
-      const res = await fetch(`/api/jobs/${id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          newLog: { 
-            ...entryData, 
-            hoursWorked: Number(entryData.hoursWorked),
-            fixedCost: entryData.fixedCost || undefined
-          } 
-        }),
+  const openEditWorkLog = (log: WorkLog) => {
+    setEditingWorkLog(log);
+    setEntryData({
+      date: log.date ? new Date(log.date).toISOString().split("T")[0] : "",
+      startTime: log.startTime || "",
+      endTime: log.endTime || "",
+      hoursWorked: log.hoursWorked || 0,
+      fixedCost: log.fixedCost?.toString() || "",
+      serviceName: log.serviceName || job?.serviceName || "",
+      rate: log.rate?.toString() || job?.serviceRate.toString() || "",
+    });
+    setShowEntryForm(true);
+  };
+
+  const openEditPaymentLog = (log: PaymentLog) => {
+    setEditingPaymentLog(log);
+    setPaymentData({
+      date: log.date ? new Date(log.date).toISOString().split("T")[0] : "",
+      amount: log.amount.toString(),
+      note: log.note || "",
+    });
+    setShowPaymentForm(true);
+  };
+
+  const closeModals = () => {
+    setShowEntryForm(false);
+    setShowPaymentForm(false);
+    setEditingWorkLog(null);
+    setEditingPaymentLog(null);
+
+    if (job) {
+      setEntryData({
+        date: new Date().toISOString().split("T")[0],
+        startTime: "",
+        endTime: "",
+        hoursWorked: 0,
+        fixedCost: "",
+        serviceName: job.serviceName,
+        rate: job.serviceRate.toString(),
       });
-      if (res.ok) {
-        setRefreshKey((k) => k + 1);
-        setShowEntryForm(false);
-        setEntryData({ 
-          date: new Date().toISOString().split("T")[0],
-          startTime: "", 
-          endTime: "", 
-          hoursWorked: 0, 
-          fixedCost: "" 
-        });
-        toast.success("Work added!", { id: toastId });
-      } else { 
-        throw new Error(); 
-      }
-    } catch (e) { 
-      toast.error("Failed to save", { id: toastId }); 
+      setPaymentData({
+        amount: "",
+        date: new Date().toISOString().split("T")[0],
+        note: "",
+      });
     }
   };
 
-  const handleAddPayment = async () => {
-    if (!paymentData.amount) {
-      toast.error("Enter Amount");
-      return;
+  const handleSaveEntry = async () => {
+    if (!entryData.date) return toast.error("Date required");
+    const finalServiceName = entryData.serviceName || job?.serviceName;
+
+    const toastId = toast.loading(editingWorkLog ? "Updating..." : "Saving...");
+
+    const logData = {
+      ...entryData,
+      serviceName: finalServiceName,
+      hoursWorked: Number(entryData.hoursWorked),
+      rate: Number(entryData.rate),
+      fixedCost: entryData.fixedCost,
+    };
+
+    const payload: {
+      updateWorkLog?: typeof logData & { _id: string };
+      newLog?: typeof logData;
+    } = {};
+
+    if (editingWorkLog) {
+      payload.updateWorkLog = { _id: editingWorkLog._id, ...logData };
+    } else {
+      payload.newLog = logData;
     }
 
-    const amountNum = Number(paymentData.amount);
-    if (isNaN(amountNum) || amountNum <= 0) {
-      toast.error("Please enter a valid amount");
-      return;
-    }
-
-    const toastId = toast.loading("Saving payment...");
     try {
       const res = await fetch(`/api/jobs/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          newPayment: { 
-            ...paymentData, 
-            amount: amountNum.toString() 
-          } 
-        }),
+        body: JSON.stringify(payload),
+      });
+
+      if (res.ok) {
+        setRefreshKey((k) => k + 1);
+        closeModals();
+        toast.success(editingWorkLog ? "Entry Updated" : "Entry Added", {
+          id: toastId,
+        });
+      } else {
+        throw new Error("Update failed");
+      }
+    } catch (e) {
+      toast.error("Operation failed", { id: toastId });
+    }
+  };
+
+  const handleSavePayment = async () => {
+    if (!paymentData.amount) return toast.error("Enter Amount");
+
+    const amountNum = Number(paymentData.amount);
+    const pendingAmount = (job?.totalAmount || 0) - (job?.paidAmount || 0);
+
+    if (!editingPaymentLog && amountNum > pendingAmount) {
+      return toast.error(
+        `Can't exceed pending amount (₹${Math.round(pendingAmount)})`
+      );
+    }
+
+    const toastId = toast.loading(
+      editingPaymentLog ? "Updating..." : "Saving..."
+    );
+
+    const payload: {
+      updatePaymentLog?: PaymentLog & Partial<PaymentFormState>;
+      newPayment?: PaymentFormState;
+    } = {};
+    if (editingPaymentLog) {
+      payload.updatePaymentLog = { _id: editingPaymentLog._id, ...paymentData };
+    } else {
+      payload.newPayment = { ...paymentData };
+    }
+
+    try {
+      const res = await fetch(`/api/jobs/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
       });
       if (res.ok) {
         setRefreshKey((k) => k + 1);
-        setShowPaymentForm(false);
-        setPaymentData({ 
-          amount: "", 
-          date: new Date().toISOString().split("T")[0], 
-          note: "" 
+        closeModals();
+        toast.success(editingPaymentLog ? "Payment Updated" : "Payment Saved", {
+          id: toastId,
         });
-        toast.success("Payment saved!", { id: toastId });
-      } else { 
-        throw new Error(); 
+      } else {
+        throw new Error("Payment update failed");
       }
-    } catch (e) { 
-      toast.error("Failed to save", { id: toastId }); 
+    } catch (e) {
+      toast.error("Operation failed", { id: toastId });
     }
+  };
+
+  // --- Toast Confirmation Helper ---
+  const confirmAction = (message: string, onConfirm: () => Promise<void>) => {
+    toast(
+      (t) => (
+        <div className="flex flex-col gap-3 min-w-[200px]">
+          <span className="font-semibold text-white text-sm">{message}</span>
+          <div className="flex gap-2 justify-end">
+            <button
+              onClick={() => toast.dismiss(t.id)}
+              className="px-3 py-1.5 text-xs font-bold text-gray-500 hover:bg-gray-100 rounded-lg transition"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => {
+                toast.dismiss(t.id);
+                onConfirm();
+              }}
+              className="px-3 py-1.5 text-xs font-bold bg-red-500 text-white rounded-lg hover:bg-red-600 transition"
+            >
+              Confirm
+            </button>
+          </div>
+        </div>
+      ),
+      { duration: 5000 }
+    );
+  };
+
+  // --- Deletion Handlers ---
+  const handleDeleteWorkLog = () => {
+    if (!editingWorkLog) return;
+
+    confirmAction("Delete this work entry?", async () => {
+      const toastId = toast.loading("Deleting...");
+      try {
+        const res = await fetch(`/api/jobs/${id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ deleteWorkLogId: editingWorkLog._id }),
+        });
+        if (res.ok) {
+          setRefreshKey((k) => k + 1);
+          closeModals();
+          toast.success("Entry Deleted", { id: toastId });
+        } else throw new Error();
+      } catch (e) {
+        toast.error("Failed to delete", { id: toastId });
+      }
+    });
+  };
+
+  const handleDeletePaymentLog = () => {
+    if (!editingPaymentLog) return;
+
+    confirmAction("Delete this payment?", async () => {
+      const toastId = toast.loading("Deleting...");
+      try {
+        const res = await fetch(`/api/jobs/${id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ deletePaymentLogId: editingPaymentLog._id }),
+        });
+        if (res.ok) {
+          setRefreshKey((k) => k + 1);
+          closeModals();
+          toast.success("Payment Deleted", { id: toastId });
+        } else throw new Error();
+      } catch (e) {
+        toast.error("Failed to delete", { id: toastId });
+      }
+    });
   };
 
   const handleDeleteJob = () => {
-    toast((t) => (
-      <div className="flex flex-col gap-2 w-full">
-        <span className="font-bold text-sm text-gray-800">Delete this job permanently?</span>
-        <div className="flex gap-2">
-          <button 
-            onClick={() => confirmDelete(t.id)} 
-            className="bg-red-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-red-600 transition"
-          >
-            Yes, Delete
-          </button>
-          <button 
-            onClick={() => toast.dismiss(t.id)} 
-            className="bg-gray-100 text-gray-600 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-gray-200 transition"
-          >
-            Cancel
-          </button>
-        </div>
-      </div>
-    ), { duration: 4000 });
+    confirmAction("Delete entire job permanently?", async () => {
+      const toastId = toast.loading("Deleting Job...");
+      try {
+        await fetch(`/api/jobs/${id}`, { method: "DELETE" });
+        toast.success("Job Deleted", { id: toastId });
+        router.push("/");
+      } catch (e) {
+        toast.error("Failed to delete job", { id: toastId });
+      }
+    });
   };
 
-  const confirmDelete = async (toastId: string) => {
-    toast.dismiss(toastId);
-    const loadingToast = toast.loading("Deleting job...");
-    try {
-      const res = await fetch(`/api/jobs/${id}`, { 
-        method: "DELETE" 
-      });
-      
-      if (res.ok) {
-        toast.success("Job Deleted", { id: loadingToast });
-        router.push("/");
-      } else {
-        throw new Error();
+  const getAggregatedServices = () => {
+    if (!job?.workLogs) return [];
+
+    const summary: Record<
+      string,
+      { time: number; cost: number; isHourly: boolean }
+    > = {};
+
+    job.workLogs.forEach((log) => {
+      // Service name
+      const name = log.serviceName || job.serviceName;
+      const rate = log.rate || job.serviceRate;
+
+      // Cost calculate
+      const logCost = log.fixedCost
+        ? Number(log.fixedCost)
+        : (log.hoursWorked || 0) * rate;
+
+      if (!summary[name]) {
+        summary[name] = { time: 0, cost: 0, isHourly: !log.fixedCost };
       }
-    } catch (e) {
-      toast.error("Failed to delete", { id: loadingToast });
-    }
+
+      summary[name].time += log.hoursWorked || 0;
+      summary[name].cost += logCost;
+    });
+
+    return Object.entries(summary).map(([name, data]) => ({ name, ...data }));
   };
 
   const handleWhatsAppShare = () => {
     if (!job) return;
-    
-    const pending = (job.totalAmount || 0) - (job.paidAmount || 0);
-    const text = `Bill for ${job.serviceName}\nName: ${job.farmerName}\nTotal: ₹${job.totalAmount}\nPaid: ₹${job.paidAmount}\nPending: ₹${pending}`;
-    window.open(`https://wa.me/91${job.mobileNumber}?text=${encodeURIComponent(text)}`, "_blank");
+
+    const services = getAggregatedServices();
+    const total = Math.round(job.totalAmount || 0);
+    const paid = Math.round(job.paidAmount || 0);
+    const pending = total - paid;
+
+    let text = `नमस्ते *${job.farmerName}* जी,\nमैं *${OWNER_NAME}* हूँ।\n\n`;
+    text += `मैंने आपके यहाँ जो कार्य किया है, उसका पूरा विवरण नीचे दिया गया है:\n\n`;
+
+    services.forEach((s) => {
+      const amount = Math.round(s.cost);
+      if (s.isHourly && s.time > 0) {
+        text += ` *${s.name}* ${formatDuration(
+          s.time
+        )} तक चला, जिसका भुगतान *₹${amount}* है।\n`;
+      } else {
+        text += ` *${s.name}* (निश्चित/ट्रिप), जिसका भुगतान *₹${amount}* है।\n`;
+      }
+    });
+
+    text += `\n------------------\n`;
+    text += ` *कुल राशि: ₹${total}*\n`;
+
+    if (paid > 0) {
+      text += `*जमा राशि: ₹${paid}*\n`;
+    }
+
+    text += `*शेष राशि: ₹${pending}*\n`;
+    text += `------------------\n\n`;
+    text += `कृपया शेष भुगतान शीघ्र करने की कृपा करें।\nधन्यवाद।`;
+
+    // WhatsApp Open
+    window.open(
+      `https://wa.me/91${job.mobileNumber}?text=${encodeURIComponent(text)}`,
+      "_blank"
+    );
   };
 
   const toggleComplete = async () => {
     if (!job) return;
-    
     const newStatus = job.status === "completed" ? "ongoing" : "completed";
-    const toastId = toast.loading("Updating status...");
-    try {
-      await fetch(`/api/jobs/${id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: newStatus }),
-      });
-      setRefreshKey(k => k + 1);
-      toast.success(newStatus === "completed" ? "Job Finished" : "Job Reopened", { id: toastId });
-    } catch (e) { 
-      toast.error("Error updating", { id: toastId }); 
-    }
+
+    // Optimistic UI update could be done here, but sticking to safe fetch
+    await fetch(`/api/jobs/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: newStatus }),
+    });
+    setRefreshKey((k) => k + 1);
+    toast.success(newStatus === "completed" ? "Job Completed" : "Job Reopened");
   };
 
-  if (loading || !job) {
+  if (loading || !job)
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-pulse h-10 w-10 bg-gray-200 rounded-full"></div>
+        <div className="animate-pulse h-10 w-10 bg-gray-200 rounded-full" />
       </div>
     );
-  }
 
-  const total = job.totalAmount || 0;
-  const paid = job.paidAmount || 0;
+  const total = Math.round(job.totalAmount || 0);
+  const paid = Math.round(job.paidAmount || 0);
   const pendingAmount = total - paid;
   const isCompleted = job.status === "completed";
 
   return (
     <div className="min-h-screen bg-gray-50/50 pb-40 overflow-x-hidden">
-      <header className="bg-white/90 backdrop-blur-md sticky top-0 z-50 border-b border-gray-100 px-5 pt-10 pb-4 flex justify-between items-center shadow-sm">
+      {/* --- HEADER --- */}
+      <header className="bg-white/90 backdrop-blur-md sticky top-0 z-40 border-b border-gray-100 px-5 pt-10 pb-4 flex justify-between items-center shadow-sm">
         <div className="flex items-center gap-3 min-w-0">
           <Link href="/">
             <button className="bg-gray-100 p-2 rounded-full text-gray-600 hover:bg-gray-200 transition">
               <ArrowLeft size={20} />
             </button>
           </Link>
-          <h1 className="text-lg font-bold text-gray-800 truncate">{job.farmerName}</h1>
+          <h1 className="text-lg font-bold text-gray-800 truncate">
+            {job.farmerName}
+          </h1>
         </div>
-        
         <div className="flex items-center gap-2 shrink-0">
-          <a href={`tel:${job.mobileNumber}`} className="bg-emerald-50 text-emerald-600 p-2 rounded-full border border-emerald-100">
+          <a
+            href={`tel:${job.mobileNumber}`}
+            className="bg-emerald-50 text-emerald-600 p-2 rounded-full border border-emerald-100 active:scale-95 transition"
+          >
             <Phone size={18} />
           </a>
-          <button 
-            onClick={handleDeleteJob} 
-            className="bg-red-50 text-red-500 p-2 rounded-full border border-red-100"
-            aria-label="Delete job"
+          <button
+            onClick={handleDeleteJob}
+            className="bg-red-50 text-red-500 p-2 rounded-full border border-red-100 active:scale-95 transition"
           >
             <Trash2 size={18} />
           </button>
         </div>
       </header>
 
-      <div className="px-4 mt-4 space-y-4">
+      {/* --- OVERVIEW CARD --- */}
+      <div className="px-4 mt-4">
         <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 relative overflow-hidden">
-          <div className={`absolute top-0 right-0 px-4 py-1.5 rounded-bl-2xl text-[10px] font-bold uppercase tracking-widest ${
-            isCompleted ? "bg-emerald-500 text-white" : "bg-yellow-400 text-yellow-900"
-          }`}>
+          <div
+            className={`absolute top-0 right-0 px-4 py-1.5 rounded-bl-2xl text-[10px] font-bold uppercase tracking-widest ${
+              isCompleted
+                ? "bg-emerald-500 text-white"
+                : "bg-yellow-400 text-yellow-900"
+            }`}
+          >
             {isCompleted ? "Completed" : "Ongoing"}
           </div>
-          <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Service</p>
-          <h2 className="text-xl font-extrabold text-gray-900 mt-1">{job.serviceName}</h2>
+          <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">
+            Services Used
+          </p>
+          <h2 className="text-lg font-extrabold text-gray-900 mb-1 leading-tight">
+            {getUniqueServices()}
+          </h2>
           <div className="flex items-center gap-2 mt-2 text-sm text-gray-500 font-medium">
-            <IndianRupee size={14} /> 
-            <span>₹{job.serviceRate}</span>
-            <span className="text-gray-300">|</span>
+            <IndianRupee size={14} /> <span>Rate Varies</span>{" "}
+            <span className="text-gray-300">|</span>{" "}
             <span className="capitalize">{job.rateType}</span>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-3 gap-3">
-          <div className="bg-blue-50 p-3 rounded-2xl border border-blue-100 flex flex-col items-center text-center">
-            <span className="text-[10px] font-bold text-blue-400 uppercase">Total</span>
-            <span className="text-sm font-extrabold text-blue-700 mt-1 truncate w-full">₹{total}</span>
-          </div>
-          <div className="bg-emerald-50 p-3 rounded-2xl border border-emerald-100 flex flex-col items-center text-center">
-            <span className="text-[10px] font-bold text-emerald-500 uppercase">Paid</span>
-            <span className="text-sm font-extrabold text-emerald-700 mt-1 truncate w-full">₹{paid}</span>
-          </div>
-          <div className="bg-red-50 p-3 rounded-2xl border border-red-100 flex flex-col items-center text-center">
-            <span className="text-[10px] font-bold text-red-400 uppercase">Pending</span>
-            <span className="text-sm font-extrabold text-red-600 mt-1 truncate w-full">₹{pendingAmount}</span>
-          </div>
-        </div>
-
-        {!isCompleted && (
-          <div className="flex gap-3">
-            <button 
-              onClick={() => { setShowEntryForm(true); setShowPaymentForm(false); }} 
-              className="flex-1 bg-gray-900 text-white py-3.5 rounded-xl font-bold text-sm shadow-md active:scale-95 transition flex justify-center items-center gap-2"
-            >
-              <Plus size={16} /> Work
-            </button>
-            <button 
-              onClick={() => { setShowPaymentForm(true); setShowEntryForm(false); }} 
-              className="flex-1 bg-emerald-600 text-white py-3.5 rounded-xl font-bold text-sm shadow-md active:scale-95 transition flex justify-center items-center gap-2"
-            >
-              <IndianRupee size={16} /> Pay
-            </button>
-          </div>
-        )}
-
-        <div className="pt-2">
-          <div className="flex bg-gray-200/60 p-1 rounded-xl mb-4">
-            <button 
-              onClick={() => setActiveTab("work")} 
-              className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${activeTab === "work" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500"}`}
-            >
-              Work
-            </button>
-            <button 
-              onClick={() => setActiveTab("payment")} 
-              className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${activeTab === "payment" ? "bg-white text-emerald-600 shadow-sm" : "text-gray-500"}`}
-            >
-              Payment
-            </button>
-          </div>
-
-          <div className="space-y-3">
-            {activeTab === "work" ? (
-              job.workLogs?.length > 0 ? job.workLogs.map((log: WorkLog, i: number) => (
-                <div key={i} className="bg-white p-3 rounded-xl border border-gray-100 flex justify-between items-center shadow-sm w-full">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="bg-gray-50 text-gray-400 p-2.5 rounded-xl shrink-0">
-                      <Calendar size={18} />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="font-bold text-gray-800 text-sm truncate">
-                        {new Date(log.date).toLocaleDateString()}
-                      </p>
-                      <p className="text-[11px] text-gray-400 truncate">
-                        {log.startTime ? `${log.startTime} - ${log.endTime}` : "Fixed Cost"}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="font-extrabold text-sm text-gray-800 whitespace-nowrap ml-2">
-                    {log.hoursWorked ? `${log.hoursWorked} hrs` : `₹${log.fixedCost}`}
-                  </div>
-                </div>
-              )) : <p className="text-center text-xs text-gray-400 py-4">No work history.</p>
-            ) : (
-              job.paymentLogs?.length > 0 ? job.paymentLogs.map((log: PaymentLog, i: number) => (
-                <div key={i} className="bg-white p-3 rounded-xl border border-emerald-100 flex justify-between items-center shadow-sm w-full relative overflow-hidden">
-                  <div className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-400"></div>
-                  <div className="flex items-center gap-3 pl-2 min-w-0">
-                    <div className="min-w-0">
-                      <p className="font-extrabold text-emerald-700 text-base truncate">₹{log.amount}</p>
-                      <p className="text-[11px] text-gray-400 truncate">
-                        {new Date(log.date).toLocaleDateString()}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="text-[10px] bg-emerald-50 text-emerald-600 px-2 py-1 rounded-md font-bold max-w-[120px] truncate ml-2">
-                    {log.note || "Cash"}
-                  </div>
-                </div>
-              )) : <p className="text-center text-xs text-gray-400 py-4">No payments yet.</p>
-            )}
           </div>
         </div>
       </div>
 
+      {/* --- FINANCIAL STATS --- */}
+      <div className="px-4 mt-4 grid grid-cols-3 gap-3">
+        <div className="bg-blue-50 p-3 rounded-2xl border border-blue-100 flex flex-col items-center text-center">
+          <span className="text-[10px] font-bold text-blue-400 uppercase">
+            Total
+          </span>
+          <span className="text-sm font-extrabold text-blue-700 mt-1 truncate w-full">
+            ₹{total}
+          </span>
+        </div>
+        <div className="bg-emerald-50 p-3 rounded-2xl border border-emerald-100 flex flex-col items-center text-center">
+          <span className="text-[10px] font-bold text-emerald-500 uppercase">
+            Paid
+          </span>
+          <span className="text-sm font-extrabold text-emerald-700 mt-1 truncate w-full">
+            ₹{paid}
+          </span>
+        </div>
+        <div className="bg-red-50 p-3 rounded-2xl border border-red-100 flex flex-col items-center text-center">
+          <span className="text-[10px] font-bold text-red-400 uppercase">
+            Pending
+          </span>
+          <span className="text-sm font-extrabold text-red-600 mt-1 truncate w-full">
+            ₹{pendingAmount}
+          </span>
+        </div>
+      </div>
+
+      {/* --- ACTION BUTTONS --- */}
+      {!isCompleted && (
+        <div className="px-4 mt-6 flex gap-3">
+          <button
+            onClick={() => {
+              setEditingWorkLog(null);
+              setShowEntryForm(true);
+            }}
+            className="flex-1 bg-gray-900 text-white py-3.5 rounded-xl font-bold text-sm shadow-md active:scale-95 transition flex justify-center items-center gap-2"
+          >
+            <Plus size={16} /> Work
+          </button>
+          <button
+            onClick={() => {
+              setEditingPaymentLog(null);
+              setShowPaymentForm(true);
+            }}
+            className="flex-1 bg-emerald-600 text-white py-3.5 rounded-xl font-bold text-sm shadow-md active:scale-95 transition flex justify-center items-center gap-2"
+          >
+            <IndianRupee size={16} /> Pay
+          </button>
+        </div>
+      )}
+
+      {/* --- TABS --- */}
+      <div className="mt-8 px-4">
+        <div className="flex bg-gray-200/60 p-1 rounded-xl mb-4">
+          <button
+            onClick={() => setActiveTab("work")}
+            className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${
+              activeTab === "work"
+                ? "bg-white text-gray-900 shadow-sm"
+                : "text-gray-500"
+            }`}
+          >
+            Work History
+          </button>
+          <button
+            onClick={() => setActiveTab("payment")}
+            className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${
+              activeTab === "payment"
+                ? "bg-white text-emerald-600 shadow-sm"
+                : "text-gray-500"
+            }`}
+          >
+            Payment History
+          </button>
+        </div>
+
+        {/* --- LOGS LIST --- */}
+        <div className="space-y-3 pb-20">
+          {activeTab === "work" ? (
+            job.workLogs?.length > 0 ? (
+              job.workLogs.map((log: WorkLog, i: number) => {
+                const entryRate = log.rate || job.serviceRate;
+                const entryCost = log.fixedCost
+                  ? Number(log.fixedCost)
+                  : (log.hoursWorked || 0) * entryRate;
+
+                return (
+                  <div
+                    key={log._id || i}
+                    className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm relative group"
+                  >
+                    <button
+                      onClick={() => openEditWorkLog(log)}
+                      className="absolute top-3 right-3 text-gray-300 hover:text-gray-600 p-2 z-10 transition-colors"
+                    >
+                      <Pencil size={16} />
+                    </button>
+                    <div className="flex justify-between items-start">
+                      <div className="flex gap-3">
+                        <div className="bg-gray-50 text-gray-500 p-2.5 rounded-xl h-fit">
+                          <Calendar size={18} />
+                        </div>
+                        <div>
+                          <p className="font-bold text-gray-800 text-sm">
+                            {formatDate(log.date)}
+                          </p>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <span className="text-xs font-bold text-emerald-600">
+                              {log.serviceName || job.serviceName}
+                            </span>
+                            <span className="text-[10px] text-gray-400 font-medium mt-0.5">
+                              {log.startTime
+                                ? `${formatTime(log.startTime)} - ${formatTime(
+                                    log.endTime || ""
+                                  )}`
+                                : "Fixed Job"}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-right pr-8">
+                        <p className="font-extrabold text-gray-900 text-sm">
+                          ₹{Math.round(entryCost)}
+                        </p>
+                        <p className="text-[11px] text-gray-500 font-medium">
+                          {log.hoursWorked
+                            ? formatDuration(log.hoursWorked)
+                            : "Fixed"}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            ) : (
+              <p className="text-center text-xs text-gray-400 py-4">
+                No work history recorded.
+              </p>
+            )
+          ) : job.paymentLogs?.length > 0 ? (
+            job.paymentLogs.map((log: PaymentLog, i: number) => (
+              <div
+                key={log._id || i}
+                className="bg-white p-4 rounded-2xl border border-emerald-100 flex justify-between items-center relative overflow-hidden"
+              >
+                <button
+                  onClick={() => openEditPaymentLog(log)}
+                  className="absolute top-3 right-3 text-emerald-200 hover:text-emerald-500 p-2 z-10 transition-colors"
+                >
+                  <Pencil size={16} />
+                </button>
+                <div className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-400"></div>
+                <div className="flex items-center gap-3 pl-2">
+                  <div>
+                    <p className="font-extrabold text-emerald-700 text-base">
+                      ₹{Math.round(Number(log.amount))}
+                    </p>
+                    <p className="text-[11px] text-gray-400 font-medium">
+                      {formatDate(log.date)}
+                    </p>
+                  </div>
+                </div>
+                <div className="text-[10px] bg-emerald-50 text-emerald-600 px-2 py-1 rounded-md font-bold max-w-[120px] truncate mr-8">
+                  {log.note || "Cash"}
+                </div>
+              </div>
+            ))
+          ) : (
+            <p className="text-center text-xs text-gray-400 py-4">
+              No payments recorded.
+            </p>
+          )}
+        </div>
+      </div>
+
+      {/* --- BOTTOM ACTIONS --- */}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 p-4 pb-6 shadow-[0_-5px_20px_rgba(0,0,0,0.05)] z-40">
         {isCompleted ? (
           <div className="flex gap-3">
-            <button 
-              onClick={toggleComplete} 
+            <button
+              onClick={toggleComplete}
               className="flex-1 bg-gray-100 text-gray-600 py-3.5 rounded-xl font-bold text-sm active:scale-95 transition"
             >
-              Reopen
+              Reopen Job
             </button>
-            <button 
-              onClick={handleWhatsAppShare} 
+            <button
+              onClick={handleWhatsAppShare}
               className="flex-[2] bg-green-500 text-white py-3.5 rounded-xl font-bold text-sm shadow-lg shadow-green-200 flex items-center justify-center gap-2 active:scale-95 transition"
             >
               <Share2 size={16} /> Share Bill
             </button>
           </div>
         ) : (
-          <button 
-            onClick={toggleComplete} 
+          <button
+            onClick={toggleComplete}
             className="w-full bg-black text-white py-3.5 rounded-xl font-bold text-sm shadow-lg flex items-center justify-center gap-2 active:scale-[0.98] transition"
           >
-            <CheckCircle size={18} className="text-emerald-400" /> Finish Job & Close
+            <CheckCircle size={18} className="text-emerald-400" /> Finish Job &
+            Close
           </button>
         )}
       </div>
 
+      {/* --- MODAL: WORK ENTRY --- */}
       {showEntryForm && (
-        <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-          <div className="absolute inset-0" onClick={() => setShowEntryForm(false)}></div>
-          <div className="bg-white w-full max-w-md rounded-3xl p-6 relative z-10 shadow-2xl">
+        <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="absolute inset-0" onClick={closeModals}></div>
+          <div className="bg-white w-full max-w-md rounded-3xl p-6 relative z-10 shadow-2xl animate-in slide-in-from-bottom-10 sm:zoom-in-95 duration-300">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
-                <div className="bg-gray-100 p-2 rounded-full"><Clock size={18} /></div> Add Work Log
+                <div className="bg-gray-100 p-2 rounded-full">
+                  <Clock size={18} />
+                </div>
+                {editingWorkLog ? "Edit Work Log" : "Add Work"}
               </h3>
-              <button 
-                onClick={() => setShowEntryForm(false)} 
-                className="bg-gray-100 p-2 rounded-full text-gray-500 hover:bg-gray-200"
-              >
-                <X size={18} />
-              </button>
-            </div>
-            <div className="space-y-4">
-              <div>
-                <label className="text-xs font-bold text-gray-400 uppercase ml-1 mb-1 block">Date</label>
-                <input 
-                  type="date" 
-                  className="w-full p-3 bg-gray-50 rounded-xl font-medium text-sm outline-none" 
-                  value={entryData.date} 
-                  onChange={(e) => setEntryData({...entryData, date: e.target.value})} 
-                />
+              <div className="flex gap-2">
+                {editingWorkLog && (
+                  <button
+                    onClick={handleDeleteWorkLog}
+                    className="bg-red-50 text-red-500 p-2 rounded-full hover:bg-red-100 transition"
+                  >
+                    <Trash2 size={18} />
+                  </button>
+                )}
+                <button
+                  onClick={closeModals}
+                  className="bg-gray-100 p-2 rounded-full text-gray-500 hover:bg-gray-200 transition"
+                >
+                  <X size={18} />
+                </button>
               </div>
-              {job.rateType === 'hourly' ? (
+            </div>
+
+            <div className="space-y-4">
+              <div className="flex gap-3">
+                <div className="flex-1">
+                  <label className="text-[10px] font-bold text-gray-400 uppercase ml-1 mb-1 block">
+                    Date
+                  </label>
+                  <input
+                    type="date"
+                    className="w-full p-3 bg-gray-50 rounded-xl text-sm font-bold outline-none"
+                    value={entryData.date}
+                    onChange={(e) =>
+                      setEntryData({ ...entryData, date: e.target.value })
+                    }
+                  />
+                </div>
+                <div className="flex-[1.5]">
+                  <label className="text-[10px] font-bold text-gray-400 uppercase ml-1 mb-1 block">
+                    Service
+                  </label>
+                  <div className="relative">
+                    <select
+                      className="w-full p-3 bg-gray-50 rounded-xl text-sm font-bold outline-none appearance-none"
+                      value={entryData.serviceName}
+                      onChange={handleServiceChange}
+                    >
+                      <option value={job?.serviceName}>
+                        {job?.serviceName}
+                      </option>
+                      {services
+                        .filter((s) => s.name !== job?.serviceName)
+                        .map((s) => (
+                          <option key={s._id} value={s.name}>
+                            {s.name}
+                          </option>
+                        ))}
+                    </select>
+                    <ChevronDown
+                      size={14}
+                      className="absolute right-3 top-4 text-gray-400 pointer-events-none"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[10px] font-bold text-gray-400 uppercase ml-1 mb-1 block">
+                  Rate (Editable)
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3 top-3 text-gray-400 text-xs">
+                    ₹
+                  </span>
+                  <input
+                    type="number"
+                    className="w-full pl-6 p-3 bg-gray-50 rounded-xl text-sm font-bold outline-none"
+                    value={entryData.rate}
+                    onChange={(e) =>
+                      setEntryData({ ...entryData, rate: e.target.value })
+                    }
+                  />
+                </div>
+              </div>
+
+              {job.rateType === "hourly" ? (
                 <div className="flex gap-3">
                   <div className="flex-1">
-                    <label className="text-xs font-bold text-gray-400 uppercase ml-1 mb-1 block">Start Time</label>
-                    <input 
-                      type="time" 
-                      className="w-full p-3 bg-gray-50 rounded-xl font-medium text-sm outline-none" 
-                      value={entryData.startTime} 
-                      onChange={(e) => setEntryData({...entryData, startTime: e.target.value})} 
+                    <label className="text-[10px] font-bold text-gray-400 uppercase ml-1 mb-1 block">
+                      Start Time
+                    </label>
+                    <input
+                      type="time"
+                      className="w-full p-3 bg-gray-50 rounded-xl text-sm outline-none"
+                      value={entryData.startTime}
+                      onChange={(e) =>
+                        setEntryData({
+                          ...entryData,
+                          startTime: e.target.value,
+                        })
+                      }
                     />
                   </div>
                   <div className="flex-1">
-                    <label className="text-xs font-bold text-gray-400 uppercase ml-1 mb-1 block">End Time</label>
-                    <input 
-                      type="time" 
-                      className="w-full p-3 bg-gray-50 rounded-xl font-medium text-sm outline-none" 
-                      value={entryData.endTime} 
-                      onChange={(e) => setEntryData({...entryData, endTime: e.target.value})} 
+                    <label className="text-[10px] font-bold text-gray-400 uppercase ml-1 mb-1 block">
+                      End Time
+                    </label>
+                    <input
+                      type="time"
+                      className="w-full p-3 bg-gray-50 rounded-xl text-sm outline-none"
+                      value={entryData.endTime}
+                      onChange={(e) =>
+                        setEntryData({ ...entryData, endTime: e.target.value })
+                      }
                     />
                   </div>
                 </div>
               ) : (
-                <div>
-                  <label className="text-xs font-bold text-gray-400 uppercase ml-1 mb-1 block">Fixed Cost</label>
-                  <input 
-                    type="number" 
-                    min="0"
-                    step="any"
-                    placeholder="Enter amount" 
-                    className="w-full p-3 bg-gray-50 rounded-xl font-medium text-sm outline-none" 
-                    value={entryData.fixedCost} 
-                    onChange={(e) => setEntryData({...entryData, fixedCost: e.target.value})} 
-                  />
+                <input
+                  type="number"
+                  placeholder="Fixed Cost Amount"
+                  className="w-full p-3 bg-gray-50 rounded-xl text-sm"
+                  value={entryData.fixedCost}
+                  onChange={(e) =>
+                    setEntryData({ ...entryData, fixedCost: e.target.value })
+                  }
+                />
+              )}
+
+              {job.rateType === "hourly" && entryData.hoursWorked > 0 && (
+                <div className="flex justify-between items-center bg-emerald-50 p-3 rounded-xl border border-emerald-100">
+                  <span className="text-xs font-bold text-emerald-600">
+                    Duration: {formatDuration(entryData.hoursWorked)}
+                  </span>
+                  <span className="text-sm font-extrabold text-emerald-700">
+                    ₹
+                    {Math.round(entryData.hoursWorked * Number(entryData.rate))}
+                  </span>
                 </div>
               )}
-              {job.rateType === 'hourly' && entryData.hoursWorked > 0 && (
-                <div className="text-center text-sm font-bold text-emerald-600 bg-emerald-50 py-3 rounded-xl border border-emerald-100">
-                  Calculated: {entryData.hoursWorked} Hours
-                </div>
-              )}
-              <button 
-                onClick={handleAddEntry} 
-                className="w-full bg-black text-white py-4 rounded-xl font-bold text-sm shadow-lg shadow-gray-200 active:scale-95 transition"
+
+              <button
+                onClick={handleSaveEntry}
+                className="w-full bg-black text-white py-4 rounded-xl font-bold text-sm shadow-lg active:scale-95 transition"
               >
-                Save Work Entry
+                {editingWorkLog ? "Update Work Entry" : "Save Work Entry"}
               </button>
             </div>
           </div>
         </div>
       )}
 
+      {/* --- MODAL: PAYMENT ENTRY --- */}
       {showPaymentForm && (
-        <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-          <div className="absolute inset-0" onClick={() => setShowPaymentForm(false)}></div>
+        <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="absolute inset-0" onClick={closeModals}></div>
           <div className="bg-white w-full max-w-md rounded-3xl p-6 relative z-10 shadow-2xl border border-emerald-100">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-lg font-bold text-emerald-800 flex items-center gap-2">
                 <div className="bg-emerald-50 p-2 rounded-full">
-                  <Banknote size={18} className="text-emerald-600"/>
-                </div> Receive Payment
+                  <Banknote size={18} className="text-emerald-600" />
+                </div>
+                {editingPaymentLog ? "Edit Payment" : "Add Payment"}
               </h3>
-              <button 
-                onClick={() => setShowPaymentForm(false)} 
-                className="bg-gray-100 p-2 rounded-full text-gray-500 hover:bg-gray-200"
-              >
-                <X size={18} />
-              </button>
+              <div className="flex gap-2">
+                {editingPaymentLog && (
+                  <button
+                    onClick={handleDeletePaymentLog}
+                    className="bg-red-50 text-red-500 p-2 rounded-full hover:bg-red-100 transition"
+                  >
+                    <Trash2 size={18} />
+                  </button>
+                )}
+                <button
+                  onClick={closeModals}
+                  className="bg-gray-100 p-2 rounded-full text-gray-500 hover:bg-gray-200 transition"
+                >
+                  <X size={18} />
+                </button>
+              </div>
             </div>
             <div className="space-y-4">
-              <div>
-                <label className="text-xs font-bold text-emerald-600/60 uppercase ml-1 mb-1 block">Payment Date</label>
-                <input 
-                  type="date" 
-                  className="w-full p-3 bg-emerald-50/30 rounded-xl font-medium text-sm outline-none" 
-                  value={paymentData.date} 
-                  onChange={(e) => setPaymentData({...paymentData, date: e.target.value})} 
-                />
-              </div>
-              <div>
-                <label className="text-xs font-bold text-emerald-600/60 uppercase ml-1 mb-1 block">Amount Received</label>
-                <div className="relative">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-emerald-600 font-bold">₹</span>
-                  <input 
-                    type="number" 
-                    min="0"
-                    step="any"
-                    placeholder="0.00" 
-                    className="w-full p-3 pl-8 bg-emerald-50/30 rounded-xl font-bold text-xl text-emerald-700 outline-none" 
-                    value={paymentData.amount} 
-                    onChange={(e) => setPaymentData({...paymentData, amount: e.target.value})} 
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="text-xs font-bold text-emerald-600/60 uppercase ml-1 mb-1 block">Note (Optional)</label>
-                <input 
-                  type="text" 
-                  placeholder="e.g. PhonePe, Cash" 
-                  className="w-full p-3 bg-emerald-50/30 rounded-xl font-medium text-sm outline-none" 
-                  value={paymentData.note} 
-                  onChange={(e) => setPaymentData({...paymentData, note: e.target.value})} 
-                />
-              </div>
-              <button 
-                onClick={handleAddPayment} 
-                className="w-full bg-emerald-600 text-white py-4 rounded-xl font-bold text-sm shadow-lg shadow-emerald-200 active:scale-95 transition"
+              <input
+                type="date"
+                className="w-full p-3 bg-emerald-50/30 rounded-xl font-bold text-sm outline-none"
+                value={paymentData.date}
+                onChange={(e) =>
+                  setPaymentData({ ...paymentData, date: e.target.value })
+                }
+              />
+              <input
+                type="number"
+                placeholder="Amount (₹)"
+                className="w-full p-3 bg-emerald-50/30 rounded-xl font-bold text-lg text-emerald-700 outline-none placeholder:text-emerald-300/50"
+                value={paymentData.amount}
+                onChange={(e) =>
+                  setPaymentData({ ...paymentData, amount: e.target.value })
+                }
+              />
+              <input
+                type="text"
+                placeholder="Cash,PhonePay,UPI etc. (optional)"
+                className="w-full p-3 bg-emerald-50/30 rounded-xl font-medium text-sm outline-none"
+                value={paymentData.note}
+                onChange={(e) =>
+                  setPaymentData({ ...paymentData, note: e.target.value })
+                }
+              />
+              <button
+                onClick={handleSavePayment}
+                className="w-full bg-emerald-600 text-white py-4 rounded-xl font-bold text-sm shadow-lg active:scale-95 transition"
               >
-                Confirm Payment
+                {editingPaymentLog ? "Update Payment" : "Confirm Payment"}
               </button>
             </div>
           </div>
