@@ -17,16 +17,17 @@ import {
   X,
   Pencil,
   ChevronDown,
+  Hash,
 } from "lucide-react";
 import toast from "react-hot-toast";
 
-// --- Interfaces ---
-
 const OWNER_NAME = "Sanjay Chouriya";
+
 interface Service {
   _id: string;
   name: string;
   price: number;
+  rateType: "hourly" | "fixed";
 }
 
 interface WorkLog {
@@ -69,6 +70,7 @@ interface EntryFormState {
   fixedCost: string;
   serviceName: string;
   rate: string;
+  quantity: string; // Added for Trips/Units
 }
 
 interface PaymentFormState {
@@ -105,6 +107,7 @@ export default function JobDetailsPage() {
     fixedCost: "",
     serviceName: "",
     rate: "",
+    quantity: "", // Init quantity
   });
 
   const [paymentData, setPaymentData] = useState<PaymentFormState>({
@@ -147,7 +150,7 @@ export default function JobDetailsPage() {
     };
 
     if (id) fetchData();
-  }, [id, refreshKey, router, editingWorkLog]); 
+  }, [id, refreshKey, router, editingWorkLog]);
 
   // --- Helpers & Formatters ---
   const formatDate = (dateStr: string) => {
@@ -191,9 +194,27 @@ export default function JobDetailsPage() {
     return [...new Set(usedServices)].join(", ");
   };
 
+  // Helper to check if currently selected service is Hourly or Fixed
+  const getSelectedServiceType = () => {
+    if (!entryData.serviceName || !job) return "hourly";
+
+    // Check if it's the main job service
+    if (entryData.serviceName === job.serviceName) {
+      return job.rateType;
+    }
+
+    // Check in services list
+    const foundService = services.find((s) => s.name === entryData.serviceName);
+    return foundService ? foundService.rateType : "hourly";
+  };
+
+  const isHourly = getSelectedServiceType() === "hourly";
+
   // --- Effects ---
+
+  // Logic for Hourly Calculation
   useEffect(() => {
-    if (entryData.startTime && entryData.endTime) {
+    if (isHourly && entryData.startTime && entryData.endTime) {
       const start = new Date(`2000-01-01T${entryData.startTime}`);
       const end = new Date(`2000-01-01T${entryData.endTime}`);
       let diff = (end.getTime() - start.getTime()) / 1000 / 60 / 60;
@@ -203,21 +224,52 @@ export default function JobDetailsPage() {
         hoursWorked: Number(diff.toFixed(2)),
       }));
     }
-  }, [entryData.startTime, entryData.endTime]);
+  }, [entryData.startTime, entryData.endTime, isHourly]);
+
+  // Logic for Fixed Calculation (Rate * Quantity)
+  useEffect(() => {
+    if (!isHourly && entryData.quantity && entryData.rate) {
+      const totalCost = Number(entryData.quantity) * Number(entryData.rate);
+      setEntryData((prev) => ({
+        ...prev,
+        fixedCost: totalCost.toString(),
+      }));
+    }
+  }, [entryData.quantity, entryData.rate, isHourly]);
 
   // --- Handlers ---
   const handleServiceChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const selectedName = e.target.value;
     const selectedService = services.find((s) => s.name === selectedName);
+
+    // Default fallback if selected is main job
+    const rate = selectedService
+      ? selectedService.price.toString()
+      : selectedName === job?.serviceName
+      ? job.serviceRate.toString()
+      : "";
+
     setEntryData((prev) => ({
       ...prev,
       serviceName: selectedName,
-      rate: selectedService ? selectedService.price.toString() : prev.rate,
+      rate: rate,
+      quantity: "", // Reset quantity on change
+      startTime: "",
+      endTime: "",
+      fixedCost: "",
     }));
   };
 
   const openEditWorkLog = (log: WorkLog) => {
     setEditingWorkLog(log);
+
+    const logRate = log.rate || job?.serviceRate || 0;
+    const logCost = log.fixedCost ? Number(log.fixedCost) : 0;
+
+    // Reverse calculate quantity if it's fixed type
+    const calculatedQty =
+      logCost && logRate ? (logCost / logRate).toString() : "";
+
     setEntryData({
       date: log.date ? new Date(log.date).toISOString().split("T")[0] : "",
       startTime: log.startTime || "",
@@ -225,7 +277,8 @@ export default function JobDetailsPage() {
       hoursWorked: log.hoursWorked || 0,
       fixedCost: log.fixedCost?.toString() || "",
       serviceName: log.serviceName || job?.serviceName || "",
-      rate: log.rate?.toString() || job?.serviceRate.toString() || "",
+      rate: logRate.toString(),
+      quantity: calculatedQty,
     });
     setShowEntryForm(true);
   };
@@ -255,6 +308,7 @@ export default function JobDetailsPage() {
         fixedCost: "",
         serviceName: job.serviceName,
         rate: job.serviceRate.toString(),
+        quantity: "",
       });
       setPaymentData({
         amount: "",
@@ -267,15 +321,29 @@ export default function JobDetailsPage() {
   const handleSaveEntry = async () => {
     if (!entryData.date) return toast.error("Date required");
     const finalServiceName = entryData.serviceName || job?.serviceName;
-
     const toastId = toast.loading(editingWorkLog ? "Updating..." : "Saving...");
+
+    // Determine cost based on type
+    let finalFixedCost = entryData.fixedCost;
+    let finalHours = Number(entryData.hoursWorked);
+
+    // If Fixed mode, ensure fixedCost is explicitly set from quantity * rate logic
+    // and hoursWorked is 0 so it doesn't mess up hourly calculations
+    if (!isHourly) {
+      finalFixedCost = (
+        Number(entryData.quantity) * Number(entryData.rate)
+      ).toString();
+      finalHours = 0;
+    } else {
+      finalFixedCost = ""; // Reset fixed cost if hourly
+    }
 
     const logData = {
       ...entryData,
       serviceName: finalServiceName,
-      hoursWorked: Number(entryData.hoursWorked),
+      hoursWorked: finalHours,
       rate: Number(entryData.rate),
-      fixedCost: entryData.fixedCost,
+      fixedCost: finalFixedCost,
     };
 
     const payload: {
@@ -448,7 +516,7 @@ export default function JobDetailsPage() {
 
     const summary: Record<
       string,
-      { time: number; cost: number; isHourly: boolean }
+      { time: number; cost: number; isHourly: boolean; count: number } // Added count for trips
     > = {};
 
     job.workLogs.forEach((log) => {
@@ -461,12 +529,18 @@ export default function JobDetailsPage() {
         ? Number(log.fixedCost)
         : (log.hoursWorked || 0) * rate;
 
+      const isFixed = !!log.fixedCost;
+
       if (!summary[name]) {
-        summary[name] = { time: 0, cost: 0, isHourly: !log.fixedCost };
+        summary[name] = { time: 0, cost: 0, isHourly: !isFixed, count: 0 };
       }
 
       summary[name].time += log.hoursWorked || 0;
       summary[name].cost += logCost;
+      if (isFixed && rate > 0) {
+        // Estimate Trip count
+        summary[name].count += logCost / rate;
+      }
     });
 
     return Object.entries(summary).map(([name, data]) => ({ name, ...data }));
@@ -490,7 +564,9 @@ export default function JobDetailsPage() {
           s.time
         )} तक चला, जिसका भुगतान *₹${amount}* है।\n`;
       } else {
-        text += ` *${s.name}* (निश्चित/ट्रिप), जिसका भुगतान *₹${amount}* है।\n`;
+        // Round off count for cleaner display (e.g., 2.0 -> 2)
+        const tripCount = Math.round(s.count * 100) / 100;
+        text += ` *${s.name}* (${tripCount} Trips/Unit), जिसका भुगतान *₹${amount}* है।\n`;
       }
     });
 
@@ -516,7 +592,6 @@ export default function JobDetailsPage() {
     if (!job) return;
     const newStatus = job.status === "completed" ? "ongoing" : "completed";
 
-    // Optimistic UI update could be done here, but sticking to safe fetch
     await fetch(`/api/jobs/${id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -681,6 +756,11 @@ export default function JobDetailsPage() {
                   ? Number(log.fixedCost)
                   : (log.hoursWorked || 0) * entryRate;
 
+                // Calculate Trips for display if fixed
+                const tripCount = log.fixedCost
+                  ? Number(log.fixedCost) / entryRate
+                  : 0;
+
                 return (
                   <div
                     key={log._id || i}
@@ -710,7 +790,7 @@ export default function JobDetailsPage() {
                                 ? `${formatTime(log.startTime)} - ${formatTime(
                                     log.endTime || ""
                                   )}`
-                                : "Fixed Job"}
+                                : `Fixed Rate (@${entryRate})`}
                             </span>
                           </div>
                         </div>
@@ -722,7 +802,7 @@ export default function JobDetailsPage() {
                         <p className="text-[11px] text-gray-500 font-medium">
                           {log.hoursWorked
                             ? formatDuration(log.hoursWorked)
-                            : "Fixed"}
+                            : `${Math.round(tripCount * 100) / 100} Trips`}
                         </p>
                       </div>
                     </div>
@@ -872,26 +952,8 @@ export default function JobDetailsPage() {
                 </div>
               </div>
 
-              <div>
-                <label className="text-[10px] font-bold text-gray-400 uppercase ml-1 mb-1 block">
-                  Rate (Editable)
-                </label>
-                <div className="relative">
-                  <span className="absolute left-3 top-3 text-gray-400 text-xs">
-                    ₹
-                  </span>
-                  <input
-                    type="number"
-                    className="w-full pl-6 p-3 bg-gray-50 rounded-xl text-sm font-bold outline-none"
-                    value={entryData.rate}
-                    onChange={(e) =>
-                      setEntryData({ ...entryData, rate: e.target.value })
-                    }
-                  />
-                </div>
-              </div>
-
-              {job.rateType === "hourly" ? (
+              {/* DYNAMIC FORM FIELDS BASED ON TYPE */}
+              {isHourly ? (
                 <div className="flex gap-3">
                   <div className="flex-1">
                     <label className="text-[10px] font-bold text-gray-400 uppercase ml-1 mb-1 block">
@@ -924,25 +986,71 @@ export default function JobDetailsPage() {
                   </div>
                 </div>
               ) : (
-                <input
-                  type="number"
-                  placeholder="Fixed Cost Amount"
-                  className="w-full p-3 bg-gray-50 rounded-xl text-sm"
-                  value={entryData.fixedCost}
-                  onChange={(e) =>
-                    setEntryData({ ...entryData, fixedCost: e.target.value })
-                  }
-                />
+                <div className="flex gap-3">
+                  <div className="flex-1">
+                    <label className="text-[10px] font-bold text-gray-400 uppercase ml-1 mb-1 block">
+                      Quantity (Trips)
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-3 text-gray-400">
+                        <Hash size={16} />
+                      </span>
+                      <input
+                        type="number"
+                        placeholder="e.g. 2"
+                        className="w-full pl-9 p-3 bg-gray-50 rounded-xl text-sm font-bold outline-none focus:bg-white focus:ring-2 focus:ring-emerald-100 transition-all"
+                        value={entryData.quantity}
+                        onChange={(e) =>
+                          setEntryData({
+                            ...entryData,
+                            quantity: e.target.value,
+                          })
+                        }
+                      />
+                    </div>
+                  </div>
+                </div>
               )}
 
-              {job.rateType === "hourly" && entryData.hoursWorked > 0 && (
+              {/* Rate Field (Common) */}
+              <div>
+                <label className="text-[10px] font-bold text-gray-400 uppercase ml-1 mb-1 block">
+                  {isHourly ? "Hourly Rate (₹)" : "Rate per Trip/Unit (₹)"}
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3 top-3 text-gray-400 text-xs">
+                    ₹
+                  </span>
+                  <input
+                    type="number"
+                    className="w-full pl-6 p-3 bg-gray-50 rounded-xl text-sm font-bold outline-none"
+                    value={entryData.rate}
+                    onChange={(e) =>
+                      setEntryData({ ...entryData, rate: e.target.value })
+                    }
+                  />
+                </div>
+              </div>
+
+              {/* Total Calculation Display */}
+              {(isHourly
+                ? entryData.hoursWorked > 0
+                : Number(entryData.quantity) > 0) && (
                 <div className="flex justify-between items-center bg-emerald-50 p-3 rounded-xl border border-emerald-100">
                   <span className="text-xs font-bold text-emerald-600">
-                    Duration: {formatDuration(entryData.hoursWorked)}
+                    {isHourly
+                      ? `Duration: ${formatDuration(entryData.hoursWorked)}`
+                      : `Total: ${entryData.quantity} Trips x ${entryData.rate}`}
                   </span>
                   <span className="text-sm font-extrabold text-emerald-700">
                     ₹
-                    {Math.round(entryData.hoursWorked * Number(entryData.rate))}
+                    {isHourly
+                      ? Math.round(
+                          entryData.hoursWorked * Number(entryData.rate)
+                        )
+                      : Math.round(
+                          Number(entryData.quantity) * Number(entryData.rate)
+                        )}
                   </span>
                 </div>
               )}
