@@ -7,6 +7,15 @@ interface JobCardProps {
   totalAmount: number;
   paidAmount: number;
   date: string;
+  labels: {
+    on: string;
+    paid: string;
+    done: string;
+    nill: string;
+    allClear: string;
+    totalBill: string;
+    balance: string;
+  };
 }
 
 export default function JobCard({
@@ -16,6 +25,7 @@ export default function JobCard({
   totalAmount,
   paidAmount,
   date,
+  labels,
 }: JobCardProps) {
   // 1. Calculations
   const roundedTotal = Math.round(totalAmount || 0);
@@ -40,17 +50,17 @@ export default function JobCard({
 
   if (!isCompleted) {
     // Case A: Working
-    badgeText = "ON";
+    badgeText = labels.on;
     badgeStyle = "bg-amber-50 text-amber-700";
     BadgeIcon = Clock;
   } else if (isAllClear) {
     // Case B: Completed & Money Received
-    badgeText = "PAID";
+    badgeText = labels.paid;
     badgeStyle = "bg-emerald-50 text-emerald-700";
     BadgeIcon = CheckCircle2;
   } else {
     // Case C: Completed but Money Pending
-    badgeText = "DONE";
+    badgeText = labels.done;
     badgeStyle = "bg-gray-100 text-gray-600";
     BadgeIcon = CheckSquare;
   }
@@ -59,12 +69,12 @@ export default function JobCard({
   let balanceContent;
   if (roundedTotal === 0) {
     balanceContent = (
-      <span className="text-sm font-bold text-gray-400">NILL</span>
+      <span className="text-sm font-bold text-gray-400">{labels.nill}</span>
     );
   } else if (isAllClear) {
     balanceContent = (
       <span className="text-sm font-bold text-emerald-600 flex items-center gap-1">
-        <CheckCircle2 size={12} /> All Clear
+        <CheckCircle2 size={12} /> {labels.allClear}
       </span>
     );
   } else {
@@ -111,7 +121,7 @@ export default function JobCard({
         <div className="mt-3 pt-2 border-t border-gray-50 flex justify-between items-end">
           <div className="flex flex-col leading-none">
             <span className="text-[9px] text-gray-400 font-bold uppercase mb-0.5">
-              Total Bill
+              {labels.totalBill}
             </span>
             <span className="text-sm font-bold text-gray-700">
               ₹{roundedTotal.toLocaleString()}
@@ -120,7 +130,7 @@ export default function JobCard({
 
           <div className="flex flex-col items-end leading-none">
             <span className="text-[9px] text-gray-400 font-bold uppercase mb-0.5">
-              Balance
+              {labels.balance}
             </span>
             {balanceContent}
           </div>
