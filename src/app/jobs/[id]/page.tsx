@@ -407,31 +407,63 @@ export default function JobDetailsPage() {
 
   const handleWhatsAppShare = () => {
     if (!job) return;
-    const summary = Object.entries(groupedWorkLogs).map(([name, data]) => ({name, cost: data.totalCost, time: data.totalTime, count: data.totalCount, isHourly: data.isHourly}));
-    
+
     const total = Math.round(job.totalAmount || 0);
     const paid = Math.round(job.paidAmount || 0);
     const pending = total - paid;
 
-    let text = `नमस्ते *${job.farmerName}* जी,\nमैं *${OWNER_NAME}* हूँ।\n\n`;
-    text += `कार्य विवरण:\n\n`;
+    // 1. Greeting
+    let text = `नमस्ते *${job.farmerName}* जी,\n`;
+    text += `मैं *${OWNER_NAME}* हूँ।\n`;
+    text += `आपके कार्य का विवरण नीचे दिया गया है:\n\n`;
+    text += `----------------------------\n`;
 
-    summary.forEach((s) => {
-      const amount = Math.round(s.cost);
-      if (s.isHourly && s.time > 0) {
-        text += ` *${s.name}* ${formatDuration(s.time)} तक चला, जिसका भुगतान *₹${amount}* है।\n`;
-      } else {
-        const tripCount = Math.round(s.count * 100) / 100;
-        text += ` *${s.name}* (${tripCount} Trips/Unit), जिसका भुगतान *₹${amount}* है।\n`;
-      }
+    // 2. Loop through each service group
+    Object.entries(groupedWorkLogs).forEach(([serviceName, data]) => {
+      text += `*${serviceName}*\n`;
+
+      // Loop through individual logs for this service
+      data.logs.forEach((log) => {
+        const date = formatDate(log.date);
+        const cost = Math.round(log.fixedCost ? Number(log.fixedCost) : (log.hoursWorked || 0) * (log.rate || 0));
+        
+        let workDetail = "";
+        if (data.isHourly) {
+          // Calculate Hours and Minutes manually for clean display
+          const decimalHours = log.hoursWorked || 0;
+          const hrs = Math.floor(decimalHours);
+          const mins = Math.round((decimalHours - hrs) * 60);
+          const timeStr = hrs > 0 
+            ? `${hrs}hr ${mins > 0 ? mins + "min" : ""}` 
+            : `${mins}min`;
+            
+          workDetail = `${timeStr}`;
+        } else {
+           // Fixed Rate / Unit logic
+           const entryRate = log.rate || 0;
+           const qty = entryRate > 0 ? (cost / entryRate) : 0;
+           workDetail = `${Math.round(qty * 100) / 100} Unit`;
+        }
+
+        // Add line: "10 Jan: 2hr 30min - ₹1500"
+        text += ` ${date}: ${workDetail} ➝ ₹${cost}\n`;
+      });
+
+      // Subtotal for this service
+      text += `   *Total: ₹${Math.round(data.totalCost)}*\n`;
+      text += `----------------------------\n`;
     });
 
-    text += `\n------------------\n`;
-    text += ` *कुल राशि: ₹${total}*\n`;
-    if (paid > 0) text += `*जमा राशि: ₹${paid}*\n`;
-    text += `*शेष राशि: ₹${pending}*\n`;
-    text += `------------------\n\nकृपया शेष भुगतान शीघ्र करें।\nधन्यवाद।`;
+    // 3. Final Summary
+    text += `*कुल राशि: ₹${total}*\n`;
+    if (paid > 0) {
+      text += ` *जमा राशि: ₹${paid}*\n`;
+    }
+    text += `*शेष (बकाया): ₹${pending}*\n\n`;
+    
+    text += `कृपया शेष भुगतान शीघ्र करें। धन्यवाद।`;
 
+    // 4. Open WhatsApp
     window.open(`https://wa.me/91${job.mobileNumber}?text=${encodeURIComponent(text)}`, "_blank");
   };
 
