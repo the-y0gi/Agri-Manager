@@ -201,7 +201,7 @@ export const jobCardContent = {
 export const reportsContent = {
   en: {
     title: "Financial Report",
-    filters: { day: "Day", week: "Week", month: "Month" },
+    filters: { day: "Today", week: "Week", month: "Month" },
     stats: { total: "Total", received: "In Hand", pending: "Pending" },
     tabs: { pending: "Pending", all: "All History" },
     noData: "No data found",
@@ -212,8 +212,11 @@ export const reportsContent = {
     title: "वित्तीय रिपोर्ट",
     filters: { day: "आज", week: "सप्ताह", month: "महीना" },
     stats: { total: "कुल", received: "प्राप्त", pending: "बाकी" },
-    tabs: { pending: "बाकी भुगतान", all: "पूरा इतिहास" },
-    noData: "कोई डेटा नहीं मिला",
+tabs: {
+      pending: "बकाया कार्य",
+      all: "सभी कार्य",
+    },   
+     noData: "कोई डेटा नहीं मिला",
     loadMore: "और लोड करें",
     error: "डेटा लोड करने में विफल",
   },
