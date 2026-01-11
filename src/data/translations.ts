@@ -13,7 +13,7 @@ export const content = {
     stats: { years: "Years", farmers: "Farmers", rating: "Rating" },
     intro: {
       greeting: "Hello Farmer Brothers!",
-      text: "I am Sanjay Chouriya, serving Bhajipani for the last 5 years. Our goal is to provide you with the best machines for farming at fair and reliable rates.",
+      text: "I am Sanjay Chouriya, serving Bhajipani for the last 11 years. Our goal is to provide you with the best machines for farming at fair and reliable rates.",
     },
     badges: ["Verified Owner", "Expert Driver"],
     season: {
@@ -90,7 +90,7 @@ export const content = {
     stats: { years: "साल", farmers: "किसान", rating: "रेटिंग" },
     intro: {
       greeting: "नमस्ते किसान भाइयों!",
-      text: "मैं संजय चौरिया, पिछले 5 सालों से भाजीपानी में आपकी सेवा में हूँ। हमारा मकसद है कि आपको खेती के लिए बेस्ट मशीनें मिलें, वो भी सही और भरोसेमंद रेट पर।",
+      text: "मैं संजय चौरिया, पिछले 11 सालों से भाजीपानी में आपकी सेवा में हूँ। हमारा मकसद है कि आपको खेती के लिए बेस्ट मशीनें मिलें, वो भी सही और भरोसेमंद रेट पर।",
     },
     badges: ["वेरीफाइड ओनर", "एक्सपर्ट ड्राइवर"],
     season: {
