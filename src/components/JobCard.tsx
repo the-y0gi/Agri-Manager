@@ -27,14 +27,14 @@ export default function JobCard({
   date,
   labels,
 }: JobCardProps) {
-  // 1. Calculations
+  // Calculations
   const roundedTotal = Math.round(totalAmount || 0);
   const roundedPaid = Math.round(paidAmount || 0);
   const pending = roundedTotal - roundedPaid;
   const isCompleted = status === "completed";
   const isAllClear = pending <= 0;
 
-  // 2. Vertical Strip Logic (Side Line)
+  // Vertical Strip Logic
   let statusBorderColor = "";
   if (!isCompleted) {
     statusBorderColor = "bg-amber-500"; // Ongoing -> Orange
@@ -65,7 +65,7 @@ export default function JobCard({
     BadgeIcon = CheckSquare;
   }
 
-  // 4. Balance Content Logic
+  // Balance Content Logic
   let balanceContent;
   if (roundedTotal === 0) {
     balanceContent = (

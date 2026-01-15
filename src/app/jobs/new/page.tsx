@@ -8,6 +8,7 @@ import toast from "react-hot-toast";
 
 import BottomNav from "@/components/BottomNav";
 import { useLanguage } from "@/context/LanguageContext"; 
+import { useLoader } from "@/context/LoaderContext";
 import { newJobContent } from "@/data/translations"; 
 
 interface Service {
@@ -29,6 +30,7 @@ export default function NewJobPage() {
   const router = useRouter();
   
   const { lang, toggleLanguage } = useLanguage();
+  const { showLoader } = useLoader();
   
   const [loading, setLoading] = useState(false);
   const [services, setServices] = useState<Service[]>([]);
@@ -121,7 +123,7 @@ export default function NewJobPage() {
       <header className="bg-white/80 backdrop-blur-md sticky top-0 z-30 border-b border-gray-100/50 px-6 pt-12 pb-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Link href="/">
+            <Link href="/" onClick={showLoader}>
               <button className="bg-gray-100 p-2.5 rounded-full text-gray-600 hover:bg-gray-200 transition active:scale-95">
                 <ArrowLeft size={20} strokeWidth={2} />
               </button>
@@ -268,7 +270,7 @@ export default function NewJobPage() {
                       </div>
                       
                       <div className="border-t border-gray-50 p-2 bg-gray-50/50">
-                        <Link href="/settings">
+                        <Link href="/settings" onClick={showLoader}>
                           <button className="w-full text-center py-2 text-[10px] font-bold text-emerald-600 uppercase tracking-wider hover:bg-emerald-50 rounded-lg transition-colors">
                             {t.addMachine}
                           </button>

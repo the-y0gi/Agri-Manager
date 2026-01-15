@@ -8,9 +8,10 @@ import toast from "react-hot-toast";
 import BottomNav from "@/components/BottomNav";
 import JobCard from "@/components/JobCard";
 import RevenueChart from "@/components/RevenueChart";
-
-import { useLanguage } from "@/context/LanguageContext"; 
+import { useLoader } from "@/context/LoaderContext";
+import { useLanguage } from "@/context/LanguageContext";
 import { reportsContent, jobCardContent } from "@/data/translations";
+
 
 interface Job {
   _id: string;

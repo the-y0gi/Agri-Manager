@@ -3,10 +3,11 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Home, BarChart3, Plus } from "lucide-react";
+import { useLoader } from "@/context/LoaderContext";
 
 export default function BottomNav() {
   const pathname = usePathname();
-
+  const { showLoader } = useLoader();
 
   const isActive = (path: string) => pathname === path;
 
@@ -19,6 +20,7 @@ export default function BottomNav() {
         {/* Home Navigation Item */}
         <Link 
           href="/" 
+          onClick={showLoader}
           className="flex-1 flex justify-center"
           aria-label="Go to homepage"
         >
@@ -44,6 +46,7 @@ export default function BottomNav() {
         <div className="relative -top-8">
           <Link 
             href="/jobs/new" 
+            onClick={showLoader}
             aria-label="Create new job"
           >
             <button 
@@ -71,6 +74,7 @@ export default function BottomNav() {
         {/* Reports Navigation Item */}
         <Link 
           href="/reports" 
+          onClick={showLoader}
           className="flex-1 flex justify-center"
           aria-label="View reports"
         >

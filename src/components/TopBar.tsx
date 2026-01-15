@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Search, Settings, LogOut, X, Languages } from "lucide-react";
 import toast from "react-hot-toast";
 import { useLanguage } from "@/context/LanguageContext"; 
+import { useLoader } from "@/context/LoaderContext";
 
 // --- Translations for TopBar ---
 const content = {
@@ -42,6 +43,7 @@ export default function TopBar({
   const router = useRouter();
   
   const { lang, toggleLanguage } = useLanguage(); 
+  const { showLoader } = useLoader();
   
   const t = content[lang];
 
@@ -137,7 +139,7 @@ export default function TopBar({
           </button>
 
           {/* Settings Button */}
-          <Link href="/settings">
+          <Link href="/settings" onClick={showLoader}>
             <button
               className="p-2 rounded-full bg-gray-100 text-gray-600 hover:bg-emerald-50 hover:text-emerald-600 transition"
               aria-label="Open settings"

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Search } from "lucide-react";
 import toast from "react-hot-toast";
 import { useLanguage } from "@/context/LanguageContext";
+import { useLoader } from "@/context/LoaderContext";
 
 import BottomNav from "@/components/BottomNav";
 import JobCard from "@/components/JobCard";
@@ -24,6 +25,7 @@ interface Job {
 
 export default function Home() {
   const { lang, toggleLanguage } = useLanguage();
+  const { showLoader } = useLoader();
 
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
@@ -139,7 +141,7 @@ export default function Home() {
               </div>
             ) : (
               filteredJobs.map((job) => (
-                <Link key={job._id} href={`/jobs/${job._id}`} className="block">
+                <Link key={job._id} href={`/jobs/${job._id}`} className="block" onClick={showLoader}>
                   <JobCard
                     farmerName={job.farmerName}
                     serviceName={getJobServices(job)}
