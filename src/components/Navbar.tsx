@@ -9,7 +9,7 @@ export default function Navbar() {
   const { showLoader } = useLoader();
 
   const handleLogout = async () => {
-    if(!confirm("Kya aap logout karna chahte hain?")) return;
+    if(!confirm("Are you sure you want to logout?")) return;
     
     showLoader(); // Show loader on logout
     await fetch("/api/auth/logout", { method: "POST" });
