@@ -2,14 +2,24 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, User, Phone, Wrench, IndianRupee, ChevronRight, Loader2, Sparkles, Check } from "lucide-react"; 
+import {
+  ArrowLeft,
+  User,
+  Phone,
+  Wrench,
+  IndianRupee,
+  ChevronRight,
+  Loader2,
+  Sparkles,
+  Check,
+} from "lucide-react";
 import Link from "next/link";
 import toast from "react-hot-toast";
 
 import BottomNav from "@/components/BottomNav";
-import { useLanguage } from "@/context/LanguageContext"; 
+import { useLanguage } from "@/context/LanguageContext";
 import { useLoader } from "@/context/LoaderContext";
-import { newJobContent } from "@/data/translations"; 
+import { newJobContent } from "@/data/translations";
 
 interface Service {
   _id: string;
@@ -28,14 +38,14 @@ interface FormData {
 
 export default function NewJobPage() {
   const router = useRouter();
-  
+
   const { lang, toggleLanguage } = useLanguage();
   const { showLoader } = useLoader();
-  
+
   const [loading, setLoading] = useState(false);
   const [services, setServices] = useState<Service[]>([]);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  
+
   const [formData, setFormData] = useState<FormData>({
     farmerName: "",
     mobileNumber: "",
@@ -45,7 +55,6 @@ export default function NewJobPage() {
   });
 
   const t = newJobContent[lang];
-
 
   useEffect(() => {
     async function fetchServices() {
@@ -58,7 +67,7 @@ export default function NewJobPage() {
       }
     }
     fetchServices();
-  }, [lang]); 
+  }, [lang]);
 
   const handleSelectMachine = (service: Service) => {
     setFormData({
@@ -73,8 +82,12 @@ export default function NewJobPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!formData.farmerName.trim() || !formData.mobileNumber.trim() || !formData.serviceName.trim()) {
+
+    if (
+      !formData.farmerName.trim() ||
+      !formData.mobileNumber.trim() ||
+      !formData.serviceName.trim()
+    ) {
       toast.error(t.messages.fillAll);
       return;
     }
@@ -128,9 +141,10 @@ export default function NewJobPage() {
                 <ArrowLeft size={20} strokeWidth={2} />
               </button>
             </Link>
-            <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight">{t.title}</h1>
+            <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight">
+              {t.title}
+            </h1>
           </div>
-
         </div>
       </header>
 
@@ -142,31 +156,43 @@ export default function NewJobPage() {
               <div className="bg-blue-100 p-1.5 rounded-lg text-blue-700">
                 <User size={16} strokeWidth={3} />
               </div>
-              <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest">{t.farmerDetails}</h2>
+              <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest">
+                {t.farmerDetails}
+              </h2>
             </div>
-            
+
             <div className="space-y-4">
               <div className="relative group/input">
-                <User className="absolute left-3.5 top-3.5 text-gray-400 group-focus-within/input:text-blue-500 transition-colors" size={20} />
+                <User
+                  className="absolute left-3.5 top-3.5 text-gray-400 group-focus-within/input:text-blue-500 transition-colors"
+                  size={20}
+                />
                 <input
                   type="text"
                   required
                   placeholder={t.farmerName}
                   className="w-full pl-11 p-3.5 bg-gray-50 rounded-xl border-transparent focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all font-semibold text-gray-700 placeholder:text-gray-400 text-sm"
                   value={formData.farmerName}
-                  onChange={(e) => setFormData({...formData, farmerName: e.target.value})}
+                  onChange={(e) =>
+                    setFormData({ ...formData, farmerName: e.target.value })
+                  }
                 />
               </div>
 
               <div className="relative group/input">
-                <Phone className="absolute left-3.5 top-3.5 text-gray-400 group-focus-within/input:text-blue-500 transition-colors" size={20} />
+                <Phone
+                  className="absolute left-3.5 top-3.5 text-gray-400 group-focus-within/input:text-blue-500 transition-colors"
+                  size={20}
+                />
                 <input
                   type="tel"
                   required
                   placeholder={t.mobileNumber}
                   className="w-full pl-11 p-3.5 bg-gray-50 rounded-xl border-transparent focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all font-semibold text-gray-700 placeholder:text-gray-400 text-sm"
                   value={formData.mobileNumber}
-                  onChange={(e) => setFormData({...formData, mobileNumber: e.target.value})}
+                  onChange={(e) =>
+                    setFormData({ ...formData, mobileNumber: e.target.value })
+                  }
                 />
               </div>
             </div>
@@ -178,76 +204,91 @@ export default function NewJobPage() {
               <div className="bg-emerald-100 p-1.5 rounded-lg text-emerald-700">
                 <Wrench size={16} strokeWidth={3} />
               </div>
-              <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest">{t.workDetails}</h2>
+              <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest">
+                {t.workDetails}
+              </h2>
             </div>
 
             <div className="space-y-4">
               <div className="relative group/input z-20">
-                <Wrench 
-                  className={`absolute left-3.5 top-3.5 transition-colors pointer-events-none z-10 ${isDropdownOpen ? 'text-emerald-500' : 'text-gray-400'}`} 
-                  size={20} 
+                <Wrench
+                  className={`absolute left-3.5 top-3.5 transition-colors pointer-events-none z-10 ${isDropdownOpen ? "text-emerald-500" : "text-gray-400"}`}
+                  size={20}
                 />
-                
+
                 <button
                   type="button"
                   onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                   className={`w-full pl-11 p-3.5 text-left rounded-xl border-transparent outline-none transition-all font-semibold text-sm flex justify-between items-center relative ${
-                    isDropdownOpen 
-                    ? "bg-white ring-2 ring-emerald-500/20 border-emerald-500 text-gray-800 shadow-lg" 
-                    : "bg-gray-50 text-gray-700 hover:bg-gray-100"
+                    isDropdownOpen
+                      ? "bg-white ring-2 ring-emerald-500/20 border-emerald-500 text-gray-800 shadow-lg"
+                      : "bg-gray-50 text-gray-700 hover:bg-gray-100"
                   }`}
                   aria-expanded={isDropdownOpen}
                   aria-haspopup="listbox"
                 >
-                  <span className={formData.serviceName ? "text-gray-800" : "text-gray-400"}>
+                  <span
+                    className={
+                      formData.serviceName ? "text-gray-800" : "text-gray-400"
+                    }
+                  >
                     {formData.serviceName || t.selectMachine}
                   </span>
-                  <ChevronRight 
-                    size={16} 
-                    className={`text-gray-400 transition-transform duration-300 ${isDropdownOpen ? "rotate-90 text-emerald-500" : ""}`} 
+                  <ChevronRight
+                    size={16}
+                    className={`text-gray-400 transition-transform duration-300 ${isDropdownOpen ? "rotate-90 text-emerald-500" : ""}`}
                   />
                 </button>
 
                 {isDropdownOpen && (
                   <>
-                    <div 
-                      className="fixed inset-0 z-10" 
-                      onClick={() => setIsDropdownOpen(false)} 
+                    <div
+                      className="fixed inset-0 z-10"
+                      onClick={() => setIsDropdownOpen(false)}
                       aria-hidden="true"
                     />
 
-                    <div 
+                    <div
                       className="absolute bottom-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden z-30"
                       role="listbox"
                     >
                       <div className="max-h-60 overflow-y-auto p-2 space-y-1">
                         {services.map((service) => {
-                          const isSelected = formData.serviceName === service.name;
+                          const isSelected =
+                            formData.serviceName === service.name;
                           return (
                             <div
                               key={service._id}
                               onClick={() => handleSelectMachine(service)}
                               className={`flex items-center justify-between p-3 rounded-xl cursor-pointer transition-all active:scale-[0.98] border ${
-                                isSelected 
-                                ? "bg-emerald-50 border-emerald-100" 
-                                : "hover:bg-gray-50 border-transparent"
+                                isSelected
+                                  ? "bg-emerald-50 border-emerald-100"
+                                  : "hover:bg-gray-50 border-transparent"
                               }`}
                               role="option"
                               aria-selected={isSelected}
                             >
                               <div className="flex items-center gap-3">
-                                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${
-                                  isSelected ? "bg-emerald-500 text-white" : "bg-gray-100 text-gray-500"
-                                }`}>
+                                <div
+                                  className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${
+                                    isSelected
+                                      ? "bg-emerald-500 text-white"
+                                      : "bg-gray-100 text-gray-500"
+                                  }`}
+                                >
                                   {service.name.charAt(0)}
                                 </div>
-                                
+
                                 <div className="flex flex-col">
-                                  <span className={`text-sm font-bold ${isSelected ? "text-emerald-700" : "text-gray-700"}`}>
+                                  <span
+                                    className={`text-sm font-bold ${isSelected ? "text-emerald-700" : "text-gray-700"}`}
+                                  >
                                     {service.name}
                                   </span>
                                   <span className="text-[10px] text-gray-400 font-medium capitalize">
-                                    {service.rateType === 'hourly' ? t.perHour : t.fixedRate}
+                                    {service.rateType === "hourly"
+                                      ? t.perHour
+                                      : t.fixedRate}
                                   </span>
                                 </div>
                               </div>
@@ -256,7 +297,12 @@ export default function NewJobPage() {
                                 <span className="text-xs font-bold text-gray-500 bg-white px-2 py-1 rounded-md border border-gray-100 shadow-sm">
                                   ₹{service.price}
                                 </span>
-                                {isSelected && <Check size={16} className="text-emerald-500" />}
+                                {isSelected && (
+                                  <Check
+                                    size={16}
+                                    className="text-emerald-500"
+                                  />
+                                )}
                               </div>
                             </div>
                           );
@@ -264,11 +310,13 @@ export default function NewJobPage() {
 
                         {services.length === 0 && (
                           <div className="text-center p-6 flex flex-col items-center">
-                            <p className="text-gray-400 text-xs font-medium">{t.messages.noMachines}</p>
+                            <p className="text-gray-400 text-xs font-medium">
+                              {t.messages.noMachines}
+                            </p>
                           </div>
                         )}
                       </div>
-                      
+
                       <div className="border-t border-gray-50 p-2 bg-gray-50/50">
                         <Link href="/settings" onClick={showLoader}>
                           <button className="w-full text-center py-2 text-[10px] font-bold text-emerald-600 uppercase tracking-wider hover:bg-emerald-50 rounded-lg transition-colors">
@@ -283,7 +331,10 @@ export default function NewJobPage() {
 
               <div className="flex gap-3 z-0">
                 <div className="relative group/input flex-1">
-                  <IndianRupee className="absolute left-3.5 top-3.5 text-gray-400 group-focus-within/input:text-emerald-500 transition-colors" size={20} />
+                  <IndianRupee
+                    className="absolute left-3.5 top-3.5 text-gray-400 group-focus-within/input:text-emerald-500 transition-colors"
+                    size={20}
+                  />
                   <input
                     type="number"
                     required
@@ -292,12 +343,16 @@ export default function NewJobPage() {
                     placeholder={t.rate}
                     className="w-full pl-11 p-3.5 bg-gray-50 rounded-xl border-transparent focus:bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all font-bold text-gray-800 placeholder:text-gray-400 text-sm"
                     value={formData.serviceRate}
-                    onChange={(e) => setFormData({...formData, serviceRate: e.target.value})}
+                    onChange={(e) =>
+                      setFormData({ ...formData, serviceRate: e.target.value })
+                    }
                   />
                 </div>
-                
+
                 <div className="bg-gray-100 px-4 rounded-xl border border-transparent text-gray-500 font-bold text-xs uppercase flex items-center justify-center min-w-[90px] tracking-wider">
-                  {formData.rateType === "hourly" ? `/ ${t.hour}` : `/ ${t.unit}`}
+                  {formData.rateType === "hourly"
+                    ? `/ ${t.hour}`
+                    : `/ ${t.unit}`}
                 </div>
               </div>
             </div>
