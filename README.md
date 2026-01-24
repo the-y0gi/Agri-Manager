@@ -1,137 +1,124 @@
 # Tractor Management System
 
-A modern web application for managing tractor services, jobs, and client interactions. Built with Next.js, TypeScript, and Tailwind CSS.
+A modern, bilingual web application for managing tractor services, agricultural jobs, and client payments. Built with Next.js 14, TypeScript, and MongoDB.
 
 ## Features
 
-- **Public Service Page**: Display available tractor services with rates and contact information
-- **Job Management**: Create, view, and manage tractor service jobs
-- **Service Management**: Add and manage different tractor services with hourly or fixed pricing
-- **Authentication**: Secure login/logout functionality
-- **Responsive Design**: Mobile-first design optimized for all devices
-- **Real-time Updates**: Live service rate updates and job status tracking
+- **🚜 Job Management**: Create and track comprehensive job records including farmer details, services provided, and work logs.
+- **💰 Financial Tracking**:
+  - Track total amounts, paid amounts, and pending balances.
+  - Record split payments with `PaymentLogSchema`.
+  - Dashboard sorting highlights pending payments first.
+- **🌐 Bilingual Support**: Full support for **English** and **Hindi**, with a dedicated `LanguageContext` for seamless switching.
+- **📊 Interactive Dashboard**:
+  - Real-time search by farmer name.
+  - Recent activity overview.
+  - Status indicators for ongoing vs. completed jobs.
+- **⚡ Modern UI/UX**:
+  - Global loading states for smooth transitions.
+  - Mobile-first responsive design using Tailwind CSS.
+  - Toast notifications for user feedback.
+- **🛠️ Service Configuration**: Manage different tractor services with hourly or fixed pricing models.
 
 ## Tech Stack
 
-- **Frontend**: Next.js 14, React, TypeScript
-- **Styling**: Tailwind CSS
-- **Icons**: Lucide React
-- **Database**: MongoDB (via custom DB connection)
-- **Authentication**: Custom auth system
-- **Notifications**: React Hot Toast
+- **Framework**: [Next.js 14](https://nextjs.org/) (App Router)
+- **Language**: [TypeScript](https://www.typescriptlang.org/)
+- **Styling**: [Tailwind CSS](https://tailwindcss.com/) & [Lucide React](https://lucide.dev/) (Icons)
+- **Database**: [MongoDB](https://www.mongodb.com/) with [Mongoose](https://mongoosejs.com/)
+- **Authentication**: Custom auth system with JWT (`jose`)
+- **State Management**: React Context API (`LanguageContext`, `LoaderContext`)
+- **Notifications**: [React Hot Toast](https://react-hot-toast.com/)
 
 ## Getting Started
 
 ### Prerequisites
 
 - Node.js 18+
-- npm or yarn
-- MongoDB database
+- MongoDB database instance
 
 ### Installation
 
-1. Clone the repository:
-```bash
-git clone <repository-url>
-cd tractor-management
-```
+1.  **Clone the repository:**
+    ```bash
+    git clone <repository-url>
+    cd tractor-management
+    ```
 
-2. Install dependencies:
-```bash
-npm install
-```
+2.  **Install dependencies:**
+    ```bash
+    npm install
+    ```
 
-3. Set up environment variables:
-Create a `.env.local` file in the root directory with:
-```env
-MONGODB_URI=your_mongodb_connection_string
-NEXTAUTH_SECRET=your_nextauth_secret
-NEXTAUTH_URL=http://localhost:3000
-```
+3.  **Set up environment variables:**
+    Create a `.env.local` file in the root directory:
+    ```env
+    MONGODB_URI=your_mongodb_connection_string
+    NEXTAUTH_SECRET=your_nextauth_secret
+    NEXTAUTH_URL=http://localhost:3000
+    ```
 
-4. Run the development server:
-```bash
-npm run dev
-```
+4.  **Run the development server:**
+    ```bash
+    npm run dev
+    ```
 
-Open [http://localhost:3000](http://localhost:3000) in your browser.
+    Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ## Project Structure
 
 ```
 src/
-├── app/
-│   ├── api/
-│   │   ├── auth/
-│   │   ├── jobs/
-│   │   └── services/
-│   ├── jobs/
-│   ├── login/
-│   ├── public/
-│   ├── reports/
-│   ├── settings/
-│   ├── globals.css
-│   ├── layout.tsx
-│   └── page.tsx
-├── components/
-│   ├── BottomNav.tsx
-│   ├── JobCard.tsx
-│   ├── Navbar.tsx
-│   ├── RevenueChart.tsx
-│   └── TopBar.tsx
-├── lib/
-│   ├── db.ts
-│   └── translations.ts
-└── models/
-    ├── Job.ts
-    └── Service.ts
+├── app/                  # App Router pages and API routes
+│   ├── api/              # Backend API endpoints (auth, jobs, services)
+│   ├── jobs/             # Job management pages (create, view details)
+│   ├── login/            # Authentication pages
+│   ├── public/           # Public-facing service pages
+│   ├── reports/          # Analytics and reporting
+│   ├── settings/         # Application settings
+│   ├── globals.css       # Global styles
+│   ├── layout.tsx        # Root layout with providers
+│   └── page.tsx          # Dashboard (Home)
+├── components/           # Reusable UI components
+│   ├── GlobalLoader.tsx  # Application-wide loading spinner
+│   ├── JobCard.tsx       # Component for displaying job summaries
+│   ├── Navbar.tsx        # Navigation bar
+│   └── ...
+├── context/              # Global state contexts
+│   ├── LanguageContext.tsx # i18n state management
+│   └── LoaderContext.tsx   # Loading state management
+├── data/                 # Static data and translations
+│   └── translations.ts   # English/Hindi translation strings
+├── lib/                  # Utility functions
+│   └── db.ts             # MongoDB connection helper
+├── models/               # Mongoose data models
+│   ├── Job.ts            # Job schema with work/payment logs
+│   └── Service.ts        # Service definition schema
+└── middleware.ts         # Next.js middleware (auth protection)
 ```
 
 ## API Routes
 
-- `GET/POST /api/services` - Manage services
-- `GET/POST /api/jobs` - Manage jobs
-- `POST /api/auth/login` - User login
-- `POST /api/auth/logout` - User logout
+- `GET /api/jobs`: Fetch all jobs (supports sorting by payment status).
+- `POST /api/jobs`: Create a new job.
+- `GET /api/jobs/[id]`: Get detailed job info.
+- `PUT /api/jobs/[id]`: Update job status or details.
+- `POST /api/auth/login`: Admin authentication.
 
-## Usage
+## usage
 
-### Public Page
-Visit `/public` to view available services and contact the service provider.
+### Dashboard
+The main dashboard gives a quick overview of all activities.
+- **Search**: Quickly find jobs by farmer name.
+- **Sorting**: Jobs with pending payments are prioritized at the top.
+- **Language Switch**: Toggle between Hindi and English using the UI controls.
 
-### Admin Features
-- Login at `/login`
-- Manage services and jobs through the dashboard
-- View reports and analytics
+### Job Tracking
+Each job maintains a detailed log:
+- **Work Logs**: Tracks daily work, start/end times, and hours worked.
+- **Payment Logs**: Records partial payments and payment methods.
 
-## Building for Production
 
-```bash
-npm run build
-npm start
-```
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Run tests and linting
-5. Submit a pull request
-
-## Troubleshooting
-
-### Common Issues
-
-- **Database Connection**: Ensure MongoDB is running and connection string is correct
-- **Build Errors**: Clear node_modules and reinstall: `rm -rf node_modules && npm install`
-- **TypeScript Errors**: Run `npm run type-check` to identify issues
-
-### Development Tips
-
-- Use `npm run lint` to check code quality
-- Enable React DevTools for debugging
-- Test on multiple devices for responsive design
 
 ## License
 
