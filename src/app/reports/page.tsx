@@ -43,7 +43,7 @@ export default function ReportsPage() {
 
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
-  const [timeFilter, setTimeFilter] = useState<TimeFilter>("week");
+  const [timeFilter, setTimeFilter] = useState<TimeFilter>("month");
   const [activeTab, setActiveTab] = useState<ActiveTab>("pending");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 15;
