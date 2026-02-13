@@ -1,4 +1,3 @@
-
 export const content = {
   en: {
     ownerName: "Sanjay Chouriya",
@@ -7,7 +6,8 @@ export const content = {
     managedBy: "Managed by",
     heroTitle: "Smart Farming",
     heroSubtitle: "Powerful Results",
-    heroDesc: "Most trusted tractor service in Bhajipani, Madhya Pradesh. Fair price, solid work.",
+    heroDesc:
+      "Most trusted tractor service in Bhajipani, Madhya Pradesh. Fair price, solid work.",
     callNow: "Call Now",
     viewRates: "View Rates",
     stats: { years: "Years", farmers: "Farmers", rating: "Rating" },
@@ -64,15 +64,27 @@ export const content = {
     faq: {
       title: "FAQ",
       list: [
-        { q: "Do I have to pay extra for diesel?", a: "No, diesel is included in our hourly rates. You just show the field." },
-        { q: "Do you work at night?", a: "Yes, we provide 24/7 service. For night work, please book in the afternoon." },
-        { q: "How can I pay?", a: "You can pay via Cash or UPI (PhonePe/GooglePay) after the work is done." },
-        { q: "What if the tractor breaks down?", a: "We have backup tractors and a mechanic team ready, work won't stop." },
+        {
+          q: "Do I have to pay extra for diesel?",
+          a: "No, diesel is included in our hourly rates. You just show the field.",
+        },
+        {
+          q: "Do you work at night?",
+          a: "Yes, we provide 24/7 service. For night work, please book in the afternoon.",
+        },
+        {
+          q: "How can I pay?",
+          a: "You can pay via Cash or UPI (PhonePe/GooglePay) after the work is done.",
+        },
+        {
+          q: "What if the tractor breaks down?",
+          a: "We have backup tractors and a mechanic team ready, work won't stop.",
+        },
       ],
     },
     testimonials: {
       title: "Happy Farmers",
-      text: "\"Sanjay bhai's service is excellent. Even when I called at night, he sent the tractor. Rates are also fair.\"",
+      text: '"Sanjay bhai\'s service is excellent. Even when I called at night, he sent the tractor. Rates are also fair."',
       role: "Local Farmer",
     },
     footerBtn: "Call",
@@ -141,22 +153,32 @@ export const content = {
     faq: {
       title: "सवालों के जवाब (FAQ)",
       list: [
-        { q: "क्या डीजल का चार्ज अलग से देना होगा?", a: "नहीं, हमारे प्रति घंटा (hourly) रेट्स में डीजल शामिल होता है। आपको सिर्फ खेत बताना है।" },
-        { q: "क्या आप रात में काम करते हैं?", a: "हाँ, हम 24/7 सर्विस देते हैं। रात के काम के लिए कृपया दोपहर में बुकिंग करें।" },
-        { q: "पेमेंट कैसे कर सकते हैं?", a: "काम होने के बाद आप नकद (Cash) या UPI (PhonePe/GooglePay) से पेमेंट कर सकते हैं।" },
-        { q: "अगर ट्रैक्टर खराब हो गया तो?", a: "हमारे पास बैकअप ट्रैक्टर और मैकेनिक टीम तैयार रहती है, आपका काम नहीं रुकेगा।" },
+        {
+          q: "क्या डीजल का चार्ज अलग से देना होगा?",
+          a: "नहीं, हमारे प्रति घंटा (hourly) रेट्स में डीजल शामिल होता है। आपको सिर्फ खेत बताना है।",
+        },
+        {
+          q: "क्या आप रात में काम करते हैं?",
+          a: "हाँ, हम 24/7 सर्विस देते हैं। रात के काम के लिए कृपया दोपहर में बुकिंग करें।",
+        },
+        {
+          q: "पेमेंट कैसे कर सकते हैं?",
+          a: "काम होने के बाद आप नकद (Cash) या UPI (PhonePe/GooglePay) से पेमेंट कर सकते हैं।",
+        },
+        {
+          q: "अगर ट्रैक्टर खराब हो गया तो?",
+          a: "हमारे पास बैकअप ट्रैक्टर और मैकेनिक टीम तैयार रहती है, आपका काम नहीं रुकेगा।",
+        },
       ],
     },
     testimonials: {
       title: "खुश किसान",
-      text: "\"संजय भाई की सर्विस बहुत बढ़िया है। रात को भी फोन किया तो ट्रैक्टर भेज दिया। रेट्स भी सही हैं।\"",
+      text: '"संजय भाई की सर्विस बहुत बढ़िया है। रात को भी फोन किया तो ट्रैक्टर भेज दिया। रेट्स भी सही हैं।"',
       role: "स्थानीय किसान",
     },
     footerBtn: "कॉल करें",
   },
 };
-
-
 
 export const dashboardContent = {
   en: {
@@ -201,7 +223,12 @@ export const jobCardContent = {
 export const reportsContent = {
   en: {
     title: "Financial Report",
-    filters: { day: "Today", week: "Week", month: "Month" },
+    filters: {
+      week: "WEEK",
+      month: "MONTH",
+      year: "YEAR",
+    },
+
     stats: { total: "Total", received: "In Hand", pending: "Pending" },
     tabs: { pending: "Pending", all: "All History" },
     noData: "No data found",
@@ -210,13 +237,17 @@ export const reportsContent = {
   },
   hi: {
     title: "वित्तीय रिपोर्ट",
-    filters: { day: "आज", week: "सप्ताह", month: "महीना" },
+    filters: {
+      week: "सप्ताह",
+      month: "महीना",
+      year: "साल",
+    },
     stats: { total: "कुल", received: "प्राप्त", pending: "बाकी" },
-tabs: {
+    tabs: {
       pending: "बकाया कार्य",
       all: "सभी कार्य",
-    },   
-     noData: "कोई डेटा नहीं मिला",
+    },
+    noData: "कोई डेटा नहीं मिला",
     loadMore: "और लोड करें",
     error: "डेटा लोड करने में विफल",
   },
@@ -323,7 +354,7 @@ export const newJobContent = {
       error: "Error creating job",
       selected: "Selected:",
       loadError: "Failed to load machines",
-      noMachines: "No machines found."
+      noMachines: "No machines found.",
     },
   },
   hi: {
@@ -349,11 +380,10 @@ export const newJobContent = {
       error: "काम शुरू करने में त्रुटि",
       selected: "चुना गया:",
       loadError: "मशीनें लोड करने में विफल",
-      noMachines: "कोई मशीन नहीं मिली"
+      noMachines: "कोई मशीन नहीं मिली",
     },
   },
 };
-
 
 export const jobDetailsContent = {
   en: {

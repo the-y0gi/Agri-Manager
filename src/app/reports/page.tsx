@@ -1,17 +1,15 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { ArrowLeft, AlertOctagon, ChevronDown } from "lucide-react"; 
+import { ArrowLeft, AlertOctagon, ChevronDown } from "lucide-react";
 import toast from "react-hot-toast";
 
 import BottomNav from "@/components/BottomNav";
 import JobCard from "@/components/JobCard";
 import RevenueChart from "@/components/RevenueChart";
-import { useLoader } from "@/context/LoaderContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { reportsContent, jobCardContent } from "@/data/translations";
-
 
 interface Job {
   _id: string;
@@ -21,7 +19,6 @@ interface Job {
   totalAmount: number;
   paidAmount: number;
   createdAt: string;
-  workLogs: ({ serviceName?: string } | null)[];
 }
 
 interface Stats {
@@ -35,160 +32,64 @@ interface ChartData {
   amount: number;
 }
 
-type TimeFilter = "day" | "week" | "month";
+type TimeFilter = "week" | "month" | "year";
 type ActiveTab = "pending" | "all";
 
 export default function ReportsPage() {
-  const { lang } = useLanguage(); 
+  const { lang } = useLanguage();
 
   const [jobs, setJobs] = useState<Job[]>([]);
+  const [stats, setStats] = useState<Stats>({
+    total: 0,
+    received: 0,
+    pending: 0,
+  });
+  const [chartData, setChartData] = useState<ChartData[]>([]);
+  const [hasMore, setHasMore] = useState(false);
   const [loading, setLoading] = useState(true);
+
   const [timeFilter, setTimeFilter] = useState<TimeFilter>("month");
   const [activeTab, setActiveTab] = useState<ActiveTab>("pending");
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 15;
 
   const t = reportsContent[lang];
-  const tCard = jobCardContent[lang]; 
-  
+  const tCard = jobCardContent[lang];
+
   useEffect(() => {
     async function fetchData() {
       try {
-        const res = await fetch("/api/jobs");
+        setLoading(true);
+
+        const res = await fetch(
+          `/api/reports?filter=${timeFilter}&tab=${activeTab}&page=${currentPage}`,
+        );
+
         const data = await res.json();
-        if (Array.isArray(data)) setJobs(data);
+
+        setJobs(data.jobs || []);
+        setStats(data.stats || { total: 0, received: 0, pending: 0 });
+        setChartData(data.chartData || []);
+        setHasMore(data.hasMore || false);
       } catch (error) {
-        toast.error(lang === "hi" ? "डेटा लोड करने में विफल" : "Failed to load data");
+        toast.error(
+          lang === "hi" ? "डेटा लोड करने में विफल" : "Failed to load data",
+        );
       } finally {
         setLoading(false);
       }
     }
+
     fetchData();
-  }, [lang]);
+  }, [timeFilter, activeTab, currentPage, lang]);
 
   const formatDate = (dateString: string) => {
-    if (!dateString) return "";
-    try {
-      const date = new Date(dateString);
-      const locale = lang === "hi" ? "hi-IN" : "en-US"; // Dynamic Locale
-      const day = date.getDate().toString().padStart(2, "0");
-      const month = date.toLocaleString(locale, { month: "short" });
-      const year = date.getFullYear().toString().slice(-2);
-      return `${day} ${month} ${year}`;
-    } catch (e) {
-      return "";
-    }
+    const date = new Date(dateString);
+    const locale = lang === "hi" ? "hi-IN" : "en-US";
+    const day = date.getDate().toString().padStart(2, "0");
+    const month = date.toLocaleString(locale, { month: "short" });
+    const year = date.getFullYear().toString().slice(-2);
+    return `${day} ${month} ${year}`;
   };
-
-  const getJobServices = (job: Job) => {
-    if (!job) return "";
-
-    const allServices: string[] = [];
-
-    // 1. Primary Service
-    if (job.serviceName) allServices.push(job.serviceName);
-
-    // 2. Logs Services (Filter out nulls)
-    if (Array.isArray(job.workLogs)) {
-      job.workLogs.forEach((log) => {
-        if (log && log.serviceName) {
-          allServices.push(log.serviceName);
-        }
-      });
-    }
-
-    // 3. Unique & Join
-    return [...new Set(allServices)].join(", ") || "Unknown";
-  };
-
-  // --- Filter Logic ---
-  const { filteredJobs, stats, chartData } = useMemo(() => {
-    const now = new Date();
-    const todayStart = new Date(
-      now.getFullYear(),
-      now.getMonth(),
-      now.getDate()
-    ).getTime();
-
-    // Time Filter
-    const timeFiltered = jobs.filter((job) => {
-      if (!job?.createdAt) return false;
-      const jobDate = new Date(job.createdAt);
-      const jobDateTime = new Date(
-        jobDate.getFullYear(),
-        jobDate.getMonth(),
-        jobDate.getDate()
-      ).getTime();
-
-      if (timeFilter === "day") return jobDateTime === todayStart;
-      if (timeFilter === "week") {
-        const weekAgo = new Date();
-        weekAgo.setDate(now.getDate() - 7);
-        return jobDate >= weekAgo;
-      }
-      if (timeFilter === "month") {
-        return (
-          jobDate.getMonth() === now.getMonth() &&
-          jobDate.getFullYear() === now.getFullYear()
-        );
-      }
-      return true;
-    });
-
-    // Calculate Stats
-    let total = 0,
-      received = 0;
-    timeFiltered.forEach((j) => {
-      total += j?.totalAmount || 0;
-      received += j?.paidAmount || 0;
-    });
-
-    // Chart Data
-    const chartMap: Record<string, number> = {};
-    const sortedJobs = [...timeFiltered].sort(
-      (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-    );
-
-    sortedJobs.forEach((job) => {
-      const dateObj = new Date(job.createdAt);
-      // Chart dates can stay simple
-      const dateKey =
-        timeFilter === "day"
-          ? dateObj.toLocaleTimeString("en-US", {
-              hour: "2-digit",
-              minute: "2-digit",
-            })
-          : dateObj.toLocaleDateString(lang === "hi" ? "hi-IN" : "en-US", {
-              day: "numeric",
-              month: "short",
-            });
-
-      chartMap[dateKey] = (chartMap[dateKey] || 0) + (job.totalAmount || 0);
-    });
-
-    const finalChartData = Object.keys(chartMap).map((date) => ({
-      date,
-      amount: chartMap[date],
-    }));
-
-    // Tab Filter
-    const tabFiltered =
-      activeTab === "pending"
-        ? timeFiltered.filter(
-            (j) => (j.totalAmount || 0) - (j.paidAmount || 0) > 0
-          )
-        : timeFiltered;
-
-    return {
-      filteredJobs: tabFiltered,
-      stats: { total, received, pending: total - received },
-      chartData: finalChartData,
-    };
-  }, [jobs, timeFilter, activeTab, lang]);
-
-  // Pagination
-  const paginatedJobs = filteredJobs.slice(0, currentPage * itemsPerPage);
-  const hasMore = filteredJobs.length > paginatedJobs.length;
 
   const formatAmount = (amount: number) => {
     if (!amount) return "0";
@@ -215,7 +116,7 @@ export default function ReportsPage() {
         </div>
 
         <div className="bg-gray-100 p-1.5 rounded-xl flex">
-          {(["day", "week", "month"] as TimeFilter[]).map((filter) => (
+          {(["week", "month", "year"] as TimeFilter[]).map((filter) => (
             <button
               key={filter}
               onClick={() => {
@@ -228,7 +129,7 @@ export default function ReportsPage() {
                   : "text-gray-400"
               }`}
             >
-              {t.filters[filter]}
+              {t.filters?.[filter] ?? filter.toUpperCase()}
             </button>
           ))}
         </div>
@@ -302,28 +203,26 @@ export default function ReportsPage() {
           <div className="flex flex-col space-y-3">
             {loading ? (
               <div className="h-32 bg-gray-100 rounded-xl animate-pulse" />
-            ) : paginatedJobs.length === 0 ? (
+            ) : jobs.length === 0 ? (
               <div className="text-center py-10 opacity-50">
                 <p className="text-xs text-gray-400">{t.noData}</p>
               </div>
             ) : (
               <>
-                {paginatedJobs.map((job) => {
-                  if (!job) return null;
-                  return (
-                    <Link key={job._id} href={`/jobs/${job._id}`}>
-                      <JobCard
-                        farmerName={job.farmerName || "Unknown"}
-                        serviceName={getJobServices(job)}
-                        status={job.status}
-                        totalAmount={job.totalAmount}
-                        paidAmount={job.paidAmount}
-                        date={formatDate(job.createdAt)}
-                        labels={tCard}
-                      />
-                    </Link>
-                  );
-                })}
+                {jobs.map((job) => (
+                  <Link key={job._id} href={`/jobs/${job._id}`}>
+                    <JobCard
+                      farmerName={job.farmerName || "Unknown"}
+                      serviceName={job.serviceName}
+                      status={job.status}
+                      totalAmount={job.totalAmount}
+                      paidAmount={job.paidAmount}
+                      date={formatDate(job.createdAt)}
+                      labels={tCard}
+                    />
+                  </Link>
+                ))}
+
                 {hasMore && (
                   <button
                     onClick={() => setCurrentPage((p) => p + 1)}
@@ -337,6 +236,7 @@ export default function ReportsPage() {
           </div>
         </div>
       </div>
+
       <BottomNav />
     </div>
   );
