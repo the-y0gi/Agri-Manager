@@ -35,7 +35,7 @@ A modern, bilingual web application for managing tractor services, agricultural 
 ### Prerequisites
 
 - Node.js 18+,
-- MongoDB database instance
+- MongoDB database instance.
 
 ### Installation
 
