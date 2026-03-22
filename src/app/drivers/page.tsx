@@ -20,7 +20,7 @@ import toast from "react-hot-toast";
 const content = {
   en: {
     title: "Drivers",
-    placeholder: "Driver name...",
+    placeholder: "Driver name add...",
     addBtn: "Add",
     payments: "Payments",
     history: "History",
@@ -34,7 +34,7 @@ const content = {
   },
   hi: {
     title: "ड्राइवर प्रबंधन",
-    placeholder: "ड्राइवर का नाम...",
+    placeholder: "ड्राइवर का नाम जोड़ें...",
     addBtn: "जोड़ें",
     payments: "भुगतान",
     history: "इतिहास",
