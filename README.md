@@ -1,6 +1,6 @@
 # Tractor Management System
 
-A modern, bilingual web application for managing tractor services, agricultural jobs, and client payments. Built with Next.js 14, TypeScript, and MongoDB.
+A modern, bilingual web application for managing tractor services, agricultural jobs, and client payments. Built with Next.js 14, TypeScript, and MongoDB...
 
 ## Features
 
