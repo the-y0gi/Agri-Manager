@@ -10,6 +10,7 @@ import { useLoader } from "@/context/LoaderContext";
 import BottomNav from "@/components/BottomNav";
 import JobCard from "@/components/JobCard";
 import TopBar from "@/components/TopBar";
+import PWAInstallPrompt from "@/components/PWAInstallPrompt";
 import { dashboardContent, jobCardContent } from "@/data/translations";
 
 interface Job {
@@ -158,6 +159,7 @@ export default function Home() {
         )}
       </div>
 
+      <PWAInstallPrompt />
       <BottomNav />
     </div>
   );
