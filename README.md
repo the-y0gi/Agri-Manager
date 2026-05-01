@@ -9,7 +9,7 @@ A modern, bilingual web application for managing tractor services, agricultural 
   - Track total amounts, paid amounts, and pending balances.
   - Record split payments with `PaymentLogSchema`.
   - Dashboard sorting highlights pending payments first.
-- **🌐 Bilingual Support**: Full support for **English** and **Hindi**, with a dedicated `LanguageContext` for seamless switching.
+- **🌐 Bilingual Support**: Full support for **English** and **Hindi**, with a dedicated `LanguageContext` for seamless switching...
 - **📊 Interactive Dashboard**:
   - Real-time search by farmer name.
   - Recent activity overview.
